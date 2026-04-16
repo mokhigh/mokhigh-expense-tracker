@@ -4,18 +4,33 @@ import { useAuth } from '../store/useAuth.js';
 
 export default function Auth() {
   const signIn = useAuth((s) => s.signIn);
+  const verifyOtp = useAuth((s) => s.verifyOtp);
   const [email, setEmail] = useState('');
-  const [sent, setSent] = useState(false);
+  const [code, setCode] = useState('');
+  const [step, setStep] = useState('email'); // 'email' | 'code'
   const [error, setError] = useState(null);
   const [loading, setLoading] = useState(false);
 
-  async function handleSubmit(e) {
+  async function handleSend(e) {
     e.preventDefault();
     setLoading(true);
     setError(null);
     try {
       await signIn(email);
-      setSent(true);
+      setStep('code');
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  async function handleVerify(e) {
+    e.preventDefault();
+    setLoading(true);
+    setError(null);
+    try {
+      await verifyOtp(email, code.trim());
     } catch (err) {
       setError(err.message);
     } finally {
@@ -38,17 +53,14 @@ export default function Auth() {
         <Typography variant="h1" textAlign="center">
           Expense Tracker
         </Typography>
-        {sent ? (
-          <Alert severity="success">
-            Check your email — we sent you a sign-in link.
-          </Alert>
-        ) : (
+
+        {step === 'email' ? (
           <>
             {error && <Alert severity="error">{error}</Alert>}
             <Typography color="text.secondary" textAlign="center">
-              Enter your email to receive a sign-in link.
+              Enter your email to receive a sign-in code.
             </Typography>
-            <Box component="form" onSubmit={handleSubmit}>
+            <Box component="form" onSubmit={handleSend}>
               <Stack spacing={2}>
                 <TextField
                   label="Email"
@@ -67,7 +79,44 @@ export default function Auth() {
                   disabled={loading}
                   fullWidth
                 >
-                  {loading ? 'Sending…' : 'Send sign-in link'}
+                  {loading ? 'Sending…' : 'Send sign-in code'}
+                </Button>
+              </Stack>
+            </Box>
+          </>
+        ) : (
+          <>
+            {error && <Alert severity="error">{error}</Alert>}
+            <Typography color="text.secondary" textAlign="center">
+              Check your email for a 6-digit code and enter it below.
+            </Typography>
+            <Box component="form" onSubmit={handleVerify}>
+              <Stack spacing={2}>
+                <TextField
+                  label="6-digit code"
+                  value={code}
+                  onChange={(e) => setCode(e.target.value)}
+                  required
+                  autoFocus
+                  inputMode="numeric"
+                  autoComplete="one-time-code"
+                  inputProps={{ maxLength: 6 }}
+                />
+                <Button
+                  type="submit"
+                  variant="contained"
+                  size="large"
+                  disabled={loading || code.trim().length < 6}
+                  fullWidth
+                >
+                  {loading ? 'Verifying…' : 'Sign in'}
+                </Button>
+                <Button
+                  variant="text"
+                  size="small"
+                  onClick={() => { setStep('email'); setError(null); setCode(''); }}
+                >
+                  Use a different email
                 </Button>
               </Stack>
             </Box>

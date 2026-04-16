@@ -22,10 +22,13 @@ export const useAuth = create((set) => ({
 
   signIn: async (email) => {
     if (!isSupabaseConfigured) throw new Error('Supabase not configured');
-    const { error } = await supabase.auth.signInWithOtp({
-      email,
-      options: { emailRedirectTo: window.location.origin },
-    });
+    const { error } = await supabase.auth.signInWithOtp({ email });
+    if (error) throw error;
+  },
+
+  verifyOtp: async (email, token) => {
+    if (!isSupabaseConfigured) throw new Error('Supabase not configured');
+    const { error } = await supabase.auth.verifyOtp({ email, token, type: 'email' });
     if (error) throw error;
   },
 
