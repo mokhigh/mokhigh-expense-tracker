@@ -9,6 +9,7 @@ import {
   ListItem,
   Menu,
   MenuItem,
+  Paper,
   Stack,
   TextField,
   Typography,
@@ -20,8 +21,15 @@ import { useExpenses } from '../store/useExpenses.js';
 import { useCategories } from '../store/useCategories.js';
 import { EditExpenseDialog } from '../features/expenses/EditExpenseDialog.jsx';
 
+const cardSx = {
+  background: 'linear-gradient(140deg, #0a0a0a 0%, #111111 55%, #161616 100%)',
+  border: '1px solid rgba(255,255,255,0.07)',
+  boxShadow: '0 0 0 1px rgba(0,0,0,0.3), 0 4px 20px rgba(0,0,0,0.4)',
+  borderRadius: 2,
+};
+
 function dayLabel(dateStr) {
-  const d = new Date(dateStr);
+  const d = new Date(dateStr + 'T00:00:00');
   if (isToday(d)) return 'Today';
   if (isYesterday(d)) return 'Yesterday';
   return format(d, 'EEE, MMM d');
@@ -47,7 +55,11 @@ function ExpenseItem({ expense, onDelete, onEdit }) {
     >
       <Stack sx={{ flex: 1, minWidth: 0, pr: 1 }} spacing={0.25}>
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-          <Typography variant="body1" fontWeight={600}>
+          <Typography
+            variant="body1"
+            fontWeight={600}
+            sx={{ fontFamily: '"Roboto Mono", "Courier New", monospace' }}
+          >
             ${Number(expense.amount).toFixed(2)}
           </Typography>
           <Chip
@@ -134,19 +146,40 @@ export default function Expenses() {
         </Typography>
       ) : (
         grouped.map(([day, items]) => (
-          <Box key={day}>
-            <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 0.5, px: 0.5 }}>
-              <Typography variant="body2" fontWeight={600} color="text.secondary">
+          <Paper key={day} sx={cardSx}>
+            <Box
+              sx={{
+                display: 'flex',
+                justifyContent: 'space-between',
+                alignItems: 'center',
+                px: 2,
+                pt: 2,
+                pb: 1,
+              }}
+            >
+              <Typography
+                sx={{
+                  fontSize: '0.65rem',
+                  fontWeight: 700,
+                  letterSpacing: '0.12em',
+                  textTransform: 'uppercase',
+                  color: 'rgba(255,255,255,0.35)',
+                }}
+              >
                 {dayLabel(day)}
               </Typography>
-              <Typography variant="body2" color="text.secondary">
+              <Typography
+                sx={{
+                  fontFamily: '"Roboto Mono", "Courier New", monospace',
+                  fontSize: '0.75rem',
+                  fontWeight: 700,
+                  color: 'rgba(255,255,255,0.4)',
+                }}
+              >
                 ${items.reduce((sum, e) => sum + Number(e.amount), 0).toFixed(2)}
               </Typography>
             </Box>
-            <List
-              disablePadding
-              sx={{ bgcolor: 'background.paper', borderRadius: 2, px: 2 }}
-            >
+            <List disablePadding sx={{ px: 2 }}>
               {items.map((e, i) => (
                 <Box key={e.id}>
                   <ExpenseItem expense={e} onDelete={deleteExpense} onEdit={setEditExpense} />
@@ -154,7 +187,7 @@ export default function Expenses() {
                 </Box>
               ))}
             </List>
-          </Box>
+          </Paper>
         ))
       )}
 

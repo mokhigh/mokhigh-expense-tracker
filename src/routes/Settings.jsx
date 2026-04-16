@@ -29,6 +29,22 @@ import { useCategories } from '../store/useCategories.js';
 import { isSupabaseConfigured } from '../lib/supabase.js';
 import { CategoryChips } from '../features/expenses/CategoryChips.jsx';
 
+const cardSx = {
+  p: 2.5,
+  background: 'linear-gradient(140deg, #0a0a0a 0%, #111111 55%, #161616 100%)',
+  border: '1px solid rgba(255,255,255,0.07)',
+  boxShadow: '0 0 0 1px rgba(0,0,0,0.3), 0 4px 20px rgba(0,0,0,0.4)',
+};
+
+const sectionLabelSx = {
+  fontSize: '0.65rem',
+  fontWeight: 700,
+  letterSpacing: '0.12em',
+  textTransform: 'uppercase',
+  color: 'rgba(255,255,255,0.35)',
+  mb: 1.5,
+};
+
 // ---- helpers ----
 
 function triggerDownload(content, filename, type) {
@@ -52,11 +68,9 @@ function ExportSection({ expenses }) {
   }
 
   return (
-    <Paper sx={{ p: 2 }}>
-      <Typography variant="body2" color="text.secondary" gutterBottom>
-        Export data
-      </Typography>
-      <Stack direction="row" spacing={1} sx={{ mt: 1 }}>
+    <Paper sx={cardSx}>
+      <Typography sx={sectionLabelSx}>Export data</Typography>
+      <Stack direction="row" spacing={1}>
         <Button variant="outlined" size="small" onClick={handleCSV}>
           Download CSV
         </Button>
@@ -115,11 +129,9 @@ function BudgetsSection({ categories, budgets, onSet }) {
   );
 
   return (
-    <Paper sx={{ p: 2 }}>
-      <Typography variant="body2" color="text.secondary" gutterBottom>
-        Monthly budgets
-      </Typography>
-      <Stack spacing={1.5} sx={{ mt: 1 }}>
+    <Paper sx={cardSx}>
+      <Typography sx={sectionLabelSx}>Monthly budgets</Typography>
+      <Stack spacing={1.5}>
         {categories.map((cat) => (
           <BudgetRow
             key={cat.id}
@@ -142,7 +154,6 @@ function RecurringSection({ categories, recurring, onAdd, onDelete }) {
   const [day, setDay] = useState('1');
   const [note, setNote] = useState('');
 
-  // Default to first category once loaded
   useEffect(() => {
     if (!category && categories.length > 0) setCategory(categories[0].id);
   }, [category, categories]);
@@ -163,12 +174,10 @@ function RecurringSection({ categories, recurring, onAdd, onDelete }) {
   }
 
   return (
-    <Paper sx={{ p: 2 }}>
-      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 1 }}>
-        <Typography variant="body2" color="text.secondary">
-          Recurring expenses
-        </Typography>
-        <IconButton size="small" onClick={() => setOpen(true)}>
+    <Paper sx={cardSx}>
+      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 1.5 }}>
+        <Typography sx={sectionLabelSx}>Recurring expenses</Typography>
+        <IconButton size="small" onClick={() => setOpen(true)} sx={{ mt: -1.5 }}>
           <AddIcon fontSize="small" />
         </IconButton>
       </Box>
@@ -194,7 +203,11 @@ function RecurringSection({ categories, recurring, onAdd, onDelete }) {
                 <ListItemText
                   primary={`$${Number(r.amount).toFixed(2)} · ${getCatLabel(r.category)}`}
                   secondary={`Day ${r.day_of_month} of every month${r.note ? ` · ${r.note}` : ''}`}
-                  primaryTypographyProps={{ fontSize: '0.875rem', fontWeight: 600 }}
+                  primaryTypographyProps={{
+                    fontSize: '0.875rem',
+                    fontWeight: 600,
+                    fontFamily: '"Roboto Mono", "Courier New", monospace',
+                  }}
                   secondaryTypographyProps={{ fontSize: '0.75rem' }}
                 />
               </ListItem>
@@ -357,12 +370,10 @@ function CategoriesSection({ categories, onSave, onDelete, onReorder }) {
   }
 
   return (
-    <Paper sx={{ p: 2 }}>
-      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 1 }}>
-        <Typography variant="body2" color="text.secondary">
-          Categories
-        </Typography>
-        <IconButton size="small" onClick={() => setAdding(true)}>
+    <Paper sx={cardSx}>
+      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 1.5 }}>
+        <Typography sx={sectionLabelSx}>Categories</Typography>
+        <IconButton size="small" onClick={() => setAdding(true)} sx={{ mt: -1.5 }}>
           <AddIcon fontSize="small" />
         </IconButton>
       </Box>
@@ -414,15 +425,18 @@ function DangerZoneSection({ onClearExpenses }) {
   }
 
   return (
-    <Paper sx={{ p: 2, borderColor: 'error.main', border: '1px solid' }}>
-      <Typography variant="body2" color="error" gutterBottom>
-        Danger zone
-      </Typography>
+    <Paper
+      sx={{
+        ...cardSx,
+        border: '1px solid',
+        borderColor: 'error.main',
+      }}
+    >
+      <Typography sx={{ ...sectionLabelSx, color: 'error.main' }}>Danger zone</Typography>
       <Button
         variant="outlined"
         color="error"
         size="small"
-        sx={{ mt: 1 }}
         onClick={() => setOpen(true)}
       >
         Clear all expenses
@@ -483,6 +497,12 @@ export default function Settings() {
   return (
     <Stack spacing={2}>
       <Typography variant="h1">Settings</Typography>
+      <CategoriesSection
+        categories={categories}
+        onSave={saveCategory}
+        onDelete={deleteCategory}
+        onReorder={reorderCategories}
+      />
       <BudgetsSection categories={categories} budgets={budgets} onSet={setBudget} />
       <RecurringSection
         categories={categories}
@@ -490,22 +510,14 @@ export default function Settings() {
         onAdd={addRecurring}
         onDelete={deleteRecurring}
       />
-      <CategoriesSection
-        categories={categories}
-        onSave={saveCategory}
-        onDelete={deleteCategory}
-        onReorder={reorderCategories}
-      />
       <ExportSection expenses={expenses} />
       <DangerZoneSection onClearExpenses={clearExpenses} />
-      <Paper sx={{ p: 2 }}>
+      <Paper sx={cardSx}>
         <Stack spacing={2}>
           <Box>
-            <Typography variant="body2" color="text.secondary" gutterBottom>
-              Account
-            </Typography>
+            <Typography sx={sectionLabelSx}>Account</Typography>
             {user ? (
-              <Typography variant="body1" fontWeight={600}>
+              <Typography variant="body1" fontWeight={600} sx={{ color: '#ffffff' }}>
                 {user.email}
               </Typography>
             ) : isSupabaseConfigured ? (

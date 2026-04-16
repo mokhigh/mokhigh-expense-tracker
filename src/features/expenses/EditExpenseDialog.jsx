@@ -59,7 +59,7 @@ export function EditExpenseDialog({ expense, onClose, onSave }) {
             label="Date"
             value={date}
             onChange={(d) => d && setDate(d)}
-            slotProps={{ textField: { fullWidth: true } }}
+            slotProps={{ textField: { fullWidth: true }, dialog: { disablePortal: true } }}
           />
           <TextField
             label="Note (optional)"
