@@ -29,19 +29,25 @@ import { useCategories } from '../store/useCategories.js';
 import { isSupabaseConfigured } from '../lib/supabase.js';
 import { CategoryChips } from '../features/expenses/CategoryChips.jsx';
 
-const cardSx = {
+const cardSx = (theme) => ({
   p: 2.5,
-  background: 'linear-gradient(140deg, #0a0a0a 0%, #111111 55%, #161616 100%)',
-  border: '1px solid rgba(255,255,255,0.07)',
-  boxShadow: '0 0 0 1px rgba(0,0,0,0.3), 0 4px 20px rgba(0,0,0,0.4)',
-};
+  background:
+    theme.palette.mode === 'dark'
+      ? 'linear-gradient(140deg, #0a0a0a 0%, #111111 55%, #161616 100%)'
+      : theme.palette.background.paper,
+  border: `1px solid ${theme.palette.mode === 'dark' ? 'rgba(255,255,255,0.07)' : 'rgba(0,0,0,0.08)'}`,
+  boxShadow:
+    theme.palette.mode === 'dark'
+      ? '0 0 0 1px rgba(0,0,0,0.3), 0 4px 20px rgba(0,0,0,0.4)'
+      : '0 2px 12px rgba(0,0,0,0.08)',
+});
 
 const sectionLabelSx = {
   fontSize: '0.65rem',
   fontWeight: 700,
   letterSpacing: '0.12em',
   textTransform: 'uppercase',
-  color: 'rgba(255,255,255,0.35)',
+  color: 'text.secondary',
   mb: 1.5,
 };
 
@@ -496,7 +502,6 @@ export default function Settings() {
 
   return (
     <Stack spacing={2}>
-      <Typography variant="h1">Settings</Typography>
       <CategoriesSection
         categories={categories}
         onSave={saveCategory}
@@ -517,7 +522,7 @@ export default function Settings() {
           <Box>
             <Typography sx={sectionLabelSx}>Account</Typography>
             {user ? (
-              <Typography variant="body1" fontWeight={600} sx={{ color: '#ffffff' }}>
+              <Typography variant="body1" fontWeight={600} sx={{ color: 'text.primary' }}>
                 {user.email}
               </Typography>
             ) : isSupabaseConfigured ? (

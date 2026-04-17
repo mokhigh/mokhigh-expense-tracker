@@ -110,15 +110,19 @@ export default function Dashboard() {
 
   return (
     <Stack spacing={2.5}>
-      <Typography variant="h1">Dashboard</Typography>
-
       {/* Hero total card */}
       <Paper
         sx={{
           p: 2.5,
-          background: 'linear-gradient(140deg, #080e24 0%, #0e1a45 55%, #142060 100%)',
-          border: '1px solid rgba(99,130,255,0.18)',
-          boxShadow: '0 0 0 1px rgba(99,130,255,0.08), 0 8px 40px rgba(14,26,69,0.7), 0 0 60px rgba(30,58,138,0.25)',
+          background:
+            theme.palette.mode === 'dark'
+              ? 'linear-gradient(140deg, #080e24 0%, #0e1a45 55%, #142060 100%)'
+              : 'linear-gradient(140deg, #eef0ff 0%, #e8ecff 55%, #e3e9ff 100%)',
+          border: `1px solid ${theme.palette.mode === 'dark' ? 'rgba(99,130,255,0.18)' : 'rgba(99,130,255,0.25)'}`,
+          boxShadow:
+            theme.palette.mode === 'dark'
+              ? '0 0 0 1px rgba(99,130,255,0.08), 0 8px 40px rgba(14,26,69,0.7), 0 0 60px rgba(30,58,138,0.25)'
+              : '0 4px 20px rgba(99,130,255,0.15)',
         }}
       >
         <Typography
@@ -127,7 +131,7 @@ export default function Dashboard() {
             fontWeight: 700,
             letterSpacing: '0.12em',
             textTransform: 'uppercase',
-            color: 'rgba(160,180,255,0.6)',
+            color: 'text.secondary',
             mb: 1.5,
           }}
         >
@@ -142,7 +146,7 @@ export default function Dashboard() {
               fontWeight: 700,
               lineHeight: 1,
               letterSpacing: '-0.05em',
-              color: '#ffffff',
+              color: 'text.primary',
             }}
           >
             ${intPart}
@@ -152,7 +156,7 @@ export default function Dashboard() {
               fontFamily: '"Roboto Mono", "Courier New", monospace',
               fontSize: '1.4rem',
               fontWeight: 500,
-              color: 'rgba(160,180,255,0.55)',
+              color: 'text.secondary',
               lineHeight: 1,
             }}
           >
@@ -183,7 +187,7 @@ export default function Dashboard() {
             >
               {isPositive ? '▲' : '▼'} {isPositive ? '+' : ''}{percentChange.toFixed(1)}%
             </Box>
-            <Typography sx={{ fontSize: '0.75rem', color: 'rgba(160,180,255,0.45)' }}>
+            <Typography sx={{ fontSize: '0.75rem', color: 'text.secondary' }}>
               vs {format(lastMonthDate, 'MMMM yyyy')}
             </Typography>
           </Box>
@@ -195,12 +199,18 @@ export default function Dashboard() {
         <Paper
           sx={{
             p: 2.5,
-            background: 'linear-gradient(140deg, #0a0a0a 0%, #111111 55%, #161616 100%)',
-            border: '1px solid rgba(255,255,255,0.07)',
-            boxShadow: '0 0 0 1px rgba(0,0,0,0.3), 0 4px 20px rgba(0,0,0,0.4)',
+            background:
+              theme.palette.mode === 'dark'
+                ? 'linear-gradient(140deg, #0a0a0a 0%, #111111 55%, #161616 100%)'
+                : theme.palette.background.paper,
+            border: `1px solid ${theme.palette.mode === 'dark' ? 'rgba(255,255,255,0.07)' : 'rgba(0,0,0,0.08)'}`,
+            boxShadow:
+              theme.palette.mode === 'dark'
+                ? '0 0 0 1px rgba(0,0,0,0.3), 0 4px 20px rgba(0,0,0,0.4)'
+                : '0 2px 12px rgba(0,0,0,0.08)',
           }}
         >
-          <SectionLabel sx={{ color: 'rgba(255,255,255,0.35)' }}>By category</SectionLabel>
+          <SectionLabel>By category</SectionLabel>
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
             <Box sx={{ position: 'relative', flex: '0 0 160px', height: 160 }}>
               <PieChart
@@ -234,7 +244,7 @@ export default function Dashboard() {
                 <Typography
                   sx={{
                     fontSize: '0.55rem',
-                    color: 'rgba(255,255,255,0.35)',
+                    color: 'text.secondary',
                     textTransform: 'uppercase',
                     letterSpacing: '0.1em',
                     lineHeight: 1.4,
@@ -242,7 +252,7 @@ export default function Dashboard() {
                 >
                   Total
                 </Typography>
-                <Typography sx={{ fontSize: '0.95rem', fontWeight: 700, lineHeight: 1.2, color: '#ffffff' }}>
+                <Typography sx={{ fontSize: '0.95rem', fontWeight: 700, lineHeight: 1.2, color: 'text.primary' }}>
                   ${total >= 1000 ? `${Math.round(total / 1000)}K` : Math.round(total)}
                 </Typography>
               </Box>
@@ -282,7 +292,7 @@ export default function Dashboard() {
                           sx={{
                             fontSize: '0.85rem',
                             fontWeight: 500,
-                            color: 'rgba(220,225,255,0.88)',
+                            color: 'text.primary',
                             overflow: 'hidden',
                             textOverflow: 'ellipsis',
                             whiteSpace: 'nowrap',
@@ -291,7 +301,7 @@ export default function Dashboard() {
                           {d.label}
                         </Typography>
                       </Box>
-                      <Typography sx={{ fontSize: '0.85rem', fontWeight: 700, color: '#ffffff', ml: 1, flexShrink: 0 }}>
+                      <Typography sx={{ fontSize: '0.85rem', fontWeight: 700, color: 'text.primary', ml: 1, flexShrink: 0 }}>
                         {pct}%
                       </Typography>
                     </Box>
@@ -318,12 +328,18 @@ export default function Dashboard() {
         <Paper
           sx={{
             p: 2.5,
-            background: 'linear-gradient(140deg, #0a0a0a 0%, #111111 55%, #161616 100%)',
-            border: '1px solid rgba(255,255,255,0.07)',
-            boxShadow: '0 0 0 1px rgba(0,0,0,0.3), 0 4px 20px rgba(0,0,0,0.4)',
+            background:
+              theme.palette.mode === 'dark'
+                ? 'linear-gradient(140deg, #0a0a0a 0%, #111111 55%, #161616 100%)'
+                : theme.palette.background.paper,
+            border: `1px solid ${theme.palette.mode === 'dark' ? 'rgba(255,255,255,0.07)' : 'rgba(0,0,0,0.08)'}`,
+            boxShadow:
+              theme.palette.mode === 'dark'
+                ? '0 0 0 1px rgba(0,0,0,0.3), 0 4px 20px rgba(0,0,0,0.4)'
+                : '0 2px 12px rgba(0,0,0,0.08)',
           }}
         >
-          <SectionLabel sx={{ color: 'rgba(255,255,255,0.35)' }}>Daily spend</SectionLabel>
+          <SectionLabel>Daily spend</SectionLabel>
 
           <Box sx={{ display: 'flex', gap: 3, mb: 2.5 }}>
             <Box>
@@ -332,7 +348,7 @@ export default function Dashboard() {
                   fontFamily: '"Roboto Mono", "Courier New", monospace',
                   fontSize: '1.35rem',
                   fontWeight: 700,
-                  color: '#ffffff',
+                  color: 'text.primary',
                   lineHeight: 1,
                 }}
               >
@@ -341,7 +357,7 @@ export default function Dashboard() {
               <Typography
                 sx={{
                   fontSize: '0.6rem',
-                  color: 'rgba(160,180,255,0.5)',
+                  color: 'text.secondary',
                   textTransform: 'uppercase',
                   letterSpacing: '0.1em',
                   mt: 0.5,
@@ -356,7 +372,7 @@ export default function Dashboard() {
                   fontFamily: '"Roboto Mono", "Courier New", monospace',
                   fontSize: '1.35rem',
                   fontWeight: 700,
-                  color: '#ffffff',
+                  color: 'text.primary',
                   lineHeight: 1,
                 }}
               >
@@ -365,7 +381,7 @@ export default function Dashboard() {
               <Typography
                 sx={{
                   fontSize: '0.6rem',
-                  color: 'rgba(160,180,255,0.5)',
+                  color: 'text.secondary',
                   textTransform: 'uppercase',
                   letterSpacing: '0.1em',
                   mt: 0.5,
@@ -380,7 +396,7 @@ export default function Dashboard() {
                   fontFamily: '"Roboto Mono", "Courier New", monospace',
                   fontSize: '1.35rem',
                   fontWeight: 700,
-                  color: '#ffffff',
+                  color: 'text.primary',
                   lineHeight: 1,
                 }}
               >
@@ -389,7 +405,7 @@ export default function Dashboard() {
               <Typography
                 sx={{
                   fontSize: '0.6rem',
-                  color: 'rgba(160,180,255,0.5)',
+                  color: 'text.secondary',
                   textTransform: 'uppercase',
                   letterSpacing: '0.1em',
                   mt: 0.5,
@@ -417,7 +433,7 @@ export default function Dashboard() {
                       sx={{
                         fontSize: '0.85rem',
                         fontWeight: 500,
-                        color: 'rgba(220,225,255,0.88)',
+                        color: 'text.primary',
                       }}
                     >
                       {d.day}
@@ -427,7 +443,7 @@ export default function Dashboard() {
                         fontFamily: '"Roboto Mono", "Courier New", monospace',
                         fontSize: '0.85rem',
                         fontWeight: 700,
-                        color: '#ffffff',
+                        color: 'text.primary',
                       }}
                     >
                       ${d.total.toFixed(2)}

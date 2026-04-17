@@ -21,12 +21,18 @@ import { useExpenses } from '../store/useExpenses.js';
 import { useCategories } from '../store/useCategories.js';
 import { EditExpenseDialog } from '../features/expenses/EditExpenseDialog.jsx';
 
-const cardSx = {
-  background: 'linear-gradient(140deg, #0a0a0a 0%, #111111 55%, #161616 100%)',
-  border: '1px solid rgba(255,255,255,0.07)',
-  boxShadow: '0 0 0 1px rgba(0,0,0,0.3), 0 4px 20px rgba(0,0,0,0.4)',
+const cardSx = (theme) => ({
+  background:
+    theme.palette.mode === 'dark'
+      ? 'linear-gradient(140deg, #0a0a0a 0%, #111111 55%, #161616 100%)'
+      : theme.palette.background.paper,
+  border: `1px solid ${theme.palette.mode === 'dark' ? 'rgba(255,255,255,0.07)' : 'rgba(0,0,0,0.08)'}`,
+  boxShadow:
+    theme.palette.mode === 'dark'
+      ? '0 0 0 1px rgba(0,0,0,0.3), 0 4px 20px rgba(0,0,0,0.4)'
+      : '0 2px 12px rgba(0,0,0,0.08)',
   borderRadius: 2,
-};
+});
 
 function dayLabel(dateStr) {
   const d = new Date(dateStr + 'T00:00:00');
@@ -125,8 +131,6 @@ export default function Expenses() {
 
   return (
     <Stack spacing={2}>
-      <Typography variant="h1">Expenses</Typography>
-
       <TextField
         placeholder="Search"
         value={search}
@@ -163,7 +167,7 @@ export default function Expenses() {
                   fontWeight: 700,
                   letterSpacing: '0.12em',
                   textTransform: 'uppercase',
-                  color: 'rgba(255,255,255,0.35)',
+                  color: 'text.secondary',
                 }}
               >
                 {dayLabel(day)}
@@ -173,7 +177,7 @@ export default function Expenses() {
                   fontFamily: '"Roboto Mono", "Courier New", monospace',
                   fontSize: '0.75rem',
                   fontWeight: 700,
-                  color: 'rgba(255,255,255,0.4)',
+                  color: 'text.secondary',
                 }}
               >
                 ${items.reduce((sum, e) => sum + Number(e.amount), 0).toFixed(2)}
