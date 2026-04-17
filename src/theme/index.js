@@ -35,62 +35,13 @@ export function createAppTheme(mode) {
       },
       MuiDialog: {
         styleOverrides: {
-          container: ({ theme }) => ({
-            [theme.breakpoints.down('sm')]: {
-              alignItems: 'flex-end',
-            },
-          }),
-          paper: ({ theme }) => ({
-            borderRadius: 20,
-            backgroundImage: 'none',
-            boxShadow:
-              theme.palette.mode === 'dark'
-                ? '0 -2px 32px rgba(255,255,255,0.06)'
-                : '0 -2px 32px rgba(0,0,0,0.10)',
-            [theme.breakpoints.down('sm')]: {
-              margin: 0,
-              width: '100%',
-              maxWidth: '100% !important',
-              borderBottomLeftRadius: 0,
-              borderBottomRightRadius: 0,
-              '&::before': {
-                content: '""',
-                display: 'block',
-                width: 36,
-                height: 4,
-                borderRadius: 2,
-                backgroundColor: theme.palette.divider,
-                margin: '12px auto 0',
-              },
-            },
-          }),
-        },
-      },
-      MuiDialogTitle: {
-        styleOverrides: {
-          root: {
-            fontSize: '1.125rem',
-            fontWeight: 700,
-            padding: '20px 24px 8px',
+          paper: {
+            background:
+              mode === 'dark'
+                ? 'linear-gradient(140deg, #0a0a0a 0%, #111111 55%, #161616 100%)'
+                : '#ffffff',
+            border: `1px solid ${mode === 'dark' ? 'rgba(255,255,255,0.07)' : 'rgba(0,0,0,0.08)'}`,
           },
-        },
-      },
-      MuiDialogContent: {
-        styleOverrides: {
-          root: {
-            padding: '8px 24px 16px',
-          },
-        },
-      },
-      MuiDialogActions: {
-        styleOverrides: {
-          root: ({ theme }) => ({
-            padding: '12px 24px 20px',
-            gap: 8,
-            [theme.breakpoints.down('sm')]: {
-              paddingBottom: 'max(20px, env(safe-area-inset-bottom))',
-            },
-          }),
         },
       },
       MuiCssBaseline: {
