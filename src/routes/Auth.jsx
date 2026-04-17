@@ -88,19 +88,19 @@ export default function Auth() {
           <>
             {error && <Alert severity="error">{error}</Alert>}
             <Typography color="text.secondary" textAlign="center">
-              Check your email for a 6-digit code and enter it below.
+              Check your email for a sign-in code and enter it below.
             </Typography>
             <Box component="form" onSubmit={handleVerify}>
               <Stack spacing={2}>
                 <TextField
-                  label="6-digit code"
+                  label="Sign-in code"
                   value={code}
                   onChange={(e) => setCode(e.target.value)}
                   required
                   autoFocus
                   inputMode="numeric"
                   autoComplete="one-time-code"
-                  inputProps={{ maxLength: 6 }}
+                  inputProps={{ maxLength: 10 }}
                 />
                 <Button
                   type="submit"
