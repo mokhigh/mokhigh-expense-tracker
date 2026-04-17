@@ -1,5 +1,6 @@
 import { useLocation, useNavigate, Outlet } from 'react-router-dom';
 import { motion } from 'motion/react';
+import { PageMotion } from '../common/MotionPrimitives.jsx';
 import {
   AppBar,
   Box,
@@ -97,20 +98,23 @@ export default function AppShell() {
           </Box>
         </Drawer>
         <Box component="main" sx={{ flexGrow: 1, p: 3 }}>
-          <Outlet />
+          <PageMotion key={location.pathname}>
+            <Outlet />
+          </PageMotion>
         </Box>
       </Box>
     );
   }
 
   return (
-    <Box sx={{ display: 'flex', flexDirection: 'column', minHeight: '100vh' }}>
+    <Box sx={{ display: 'flex', flexDirection: 'column', minHeight: '100dvh' }}>
       <AppBar
         position="sticky"
         elevation={0}
         sx={{
           bgcolor: 'background.default',
           boxShadow: 'none',
+          paddingTop: 'env(safe-area-inset-top)',
         }}
       >
         <Toolbar sx={{ minHeight: '52px !important', px: 2 }}>
@@ -149,7 +153,9 @@ export default function AppShell() {
         component="main"
         sx={{ flexGrow: 1, p: 2, pb: 'calc(96px + env(safe-area-inset-bottom))' }}
       >
-        <Outlet />
+        <PageMotion key={location.pathname}>
+          <Outlet />
+        </PageMotion>
       </Box>
 
       <Box
@@ -185,6 +191,9 @@ export default function AppShell() {
                 key={to}
                 onClick={() => navigate(to)}
                 disableRipple
+                component={motion.button}
+                whileTap={{ scale: 0.88 }}
+                transition={{ type: 'spring', stiffness: 500, damping: 28 }}
                 sx={{
                   display: 'flex',
                   flexDirection: 'column',

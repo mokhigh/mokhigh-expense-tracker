@@ -34,13 +34,13 @@ export function createAppTheme(mode) {
         defaultProps: { variant: 'outlined', fullWidth: true },
       },
       MuiCssBaseline: {
-        styleOverrides: {
-          body: {
-            paddingTop: 'env(safe-area-inset-top)',
-            paddingBottom: 'env(safe-area-inset-bottom)',
-            WebkitTapHighlightColor: 'transparent',
-          },
-        },
+        styleOverrides: `
+          body { -webkit-tap-highlight-color: transparent; }
+          ::view-transition-old(root), ::view-transition-new(root) {
+            animation-duration: 0.35s;
+            animation-timing-function: ease-in-out;
+          }
+        `,
       },
     },
   });

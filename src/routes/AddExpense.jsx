@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { createPortal } from 'react-dom';
 import { Alert, Box, Fab, Paper, Stack, TextField, Typography } from '@mui/material';
 import { DateCalendar } from '@mui/x-date-pickers';
 import { AnimatePresence, motion } from 'motion/react';
@@ -66,7 +67,7 @@ export default function AddExpense() {
   }
 
   return (
-    <Box component="form" onSubmit={handleSubmit}>
+    <Box component="form" id="add-expense-form" onSubmit={handleSubmit}>
       <Stack spacing={1}>
         <Paper sx={cardSx}>
           <Stack spacing={2}>
@@ -163,64 +164,68 @@ export default function AddExpense() {
         </AnimatePresence>
       </Stack>
 
-      {/* FAB — fixed above bottom nav on mobile, bottom-right on desktop */}
-      <Box
-        sx={{
-          position: 'fixed',
-          bottom: {
-            xs: 'calc(100px + env(safe-area-inset-bottom, 0px))',
-            md: 32,
-          },
-          right: { xs: 16, md: 32 },
-          zIndex: 1200,
-        }}
-      >
+      {createPortal(
+        <Box
+          sx={{
+            position: 'fixed',
+            bottom: {
+              xs: 'calc(100px + env(safe-area-inset-bottom, 0px))',
+              md: 32,
+            },
+            right: { xs: 16, md: 32 },
+            zIndex: 1200,
+          }}
+        >
         <motion.div
           initial={{ scale: 0, opacity: 0 }}
           animate={{ scale: 1, opacity: 1 }}
           transition={{ type: 'spring', stiffness: 380, damping: 22, delay: 0.05 }}
           whileTap={{ scale: 0.88 }}
+          style={{ display: 'flex' }}
         >
-          <Fab
-            type="submit"
-            color={success ? 'success' : 'primary'}
-            disabled={submitting || !amount}
-            aria-label="Save expense"
-            sx={{
-              boxShadow: success
-                ? '0 0 0 6px rgba(76,175,80,0.18)'
-                : '0 4px 20px rgba(0,0,0,0.45)',
-              transition: 'box-shadow 0.3s ease, background-color 0.3s ease',
-            }}
-          >
-            <AnimatePresence mode="wait" initial={false}>
-              {success ? (
-                <motion.span
-                  key="check"
-                  initial={{ scale: 0, rotate: -60 }}
-                  animate={{ scale: 1, rotate: 0 }}
-                  exit={{ scale: 0, rotate: 60 }}
-                  transition={{ type: 'spring', stiffness: 500, damping: 24 }}
-                  style={{ display: 'flex' }}
-                >
-                  <CheckRoundedIcon />
-                </motion.span>
-              ) : (
-                <motion.span
-                  key="save"
-                  initial={{ scale: 0, rotate: 60 }}
-                  animate={{ scale: 1, rotate: 0 }}
-                  exit={{ scale: 0, rotate: -60 }}
-                  transition={{ type: 'spring', stiffness: 500, damping: 24 }}
-                  style={{ display: 'flex' }}
-                >
-                  <SaveRoundedIcon />
-                </motion.span>
-              )}
-            </AnimatePresence>
-          </Fab>
+            <Fab
+              type="submit"
+              form="add-expense-form"
+              color={success ? 'success' : 'primary'}
+              disabled={submitting || !amount}
+              aria-label="Save expense"
+              sx={{
+                boxShadow: success
+                  ? '0 0 0 6px rgba(76,175,80,0.18)'
+                  : '0 4px 20px rgba(0,0,0,0.45)',
+                transition: 'box-shadow 0.3s ease, background-color 0.3s ease',
+              }}
+            >
+              <AnimatePresence mode="wait" initial={false}>
+                {success ? (
+                  <motion.span
+                    key="check"
+                    initial={{ scale: 0, rotate: -60 }}
+                    animate={{ scale: 1, rotate: 0 }}
+                    exit={{ scale: 0, rotate: 60 }}
+                    transition={{ type: 'spring', stiffness: 500, damping: 24 }}
+                    style={{ display: 'flex' }}
+                  >
+                    <CheckRoundedIcon />
+                  </motion.span>
+                ) : (
+                  <motion.span
+                    key="save"
+                    initial={{ scale: 0, rotate: 60 }}
+                    animate={{ scale: 1, rotate: 0 }}
+                    exit={{ scale: 0, rotate: -60 }}
+                    transition={{ type: 'spring', stiffness: 500, damping: 24 }}
+                    style={{ display: 'flex' }}
+                  >
+                    <SaveRoundedIcon />
+                  </motion.span>
+                )}
+              </AnimatePresence>
+            </Fab>
         </motion.div>
-      </Box>
+        </Box>,
+        document.body
+      )}
     </Box>
   );
 }

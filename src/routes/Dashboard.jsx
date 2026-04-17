@@ -1,10 +1,31 @@
 import { useMemo } from 'react';
-import { Box, LinearProgress, Paper, Stack, Typography, useTheme } from '@mui/material';
+import { Box, Paper, Stack, Typography, useTheme } from '@mui/material';
 import { PieChart } from '@mui/x-charts';
+import { motion } from 'motion/react';
 import { format, startOfMonth, endOfMonth, eachDayOfInterval } from 'date-fns';
 import { useExpenses } from '../store/useExpenses.js';
 import { useBudgets } from '../store/useBudgets.js';
 import { useCategories } from '../store/useCategories.js';
+const EASE = [0.22, 1, 0.36, 1];
+const cardMotion = (i) => ({
+  initial: { opacity: 0, y: 14 },
+  animate: { opacity: 1, y: 0 },
+  transition: { duration: 0.4, ease: EASE, delay: 0.05 + i * 0.07 },
+});
+
+function MotionBar({ value, color, bg, height = 3 }) {
+  return (
+    <Box sx={{ height, borderRadius: 2, bgcolor: bg, overflow: 'hidden' }}>
+      <Box
+        component={motion.div}
+        initial={{ width: 0 }}
+        animate={{ width: `${Math.min(100, Math.max(0, value))}%` }}
+        transition={{ duration: 0.7, ease: [0.22, 1, 0.36, 1], delay: 0.1 }}
+        sx={{ height: '100%', bgcolor: color, borderRadius: 2 }}
+      />
+    </Box>
+  );
+}
 
 function SectionLabel({ children, sx = {} }) {
   return (
@@ -112,6 +133,8 @@ export default function Dashboard() {
     <Stack spacing={2.5}>
       {/* Hero total card */}
       <Paper
+        component={motion.div}
+        {...cardMotion(0)}
         sx={{
           p: 2.5,
           background:
@@ -197,6 +220,8 @@ export default function Dashboard() {
       {/* By category */}
       {pieData.length > 0 && (
         <Paper
+          component={motion.div}
+          {...cardMotion(1)}
           sx={{
             p: 2.5,
             background:
@@ -305,16 +330,7 @@ export default function Dashboard() {
                         {pct}%
                       </Typography>
                     </Box>
-                    <LinearProgress
-                      variant="determinate"
-                      value={pct}
-                      sx={{
-                        height: 3,
-                        borderRadius: 2,
-                        bgcolor: `${d.color}33`,
-                        '& .MuiLinearProgress-bar': { bgcolor: d.color, borderRadius: 2 },
-                      }}
-                    />
+                    <MotionBar value={pct} color={d.color} bg={`${d.color}33`} />
                   </Box>
                 );
               })}
@@ -326,6 +342,8 @@ export default function Dashboard() {
       {/* Daily spend */}
       {spendingDays.length > 0 && (
         <Paper
+          component={motion.div}
+          {...cardMotion(2)}
           sx={{
             p: 2.5,
             background:
@@ -449,16 +467,7 @@ export default function Dashboard() {
                       ${d.total.toFixed(2)}
                     </Typography>
                   </Box>
-                  <LinearProgress
-                    variant="determinate"
-                    value={pct}
-                    sx={{
-                      height: 3,
-                      borderRadius: 2,
-                      bgcolor: 'rgba(122,143,255,0.12)',
-                      '& .MuiLinearProgress-bar': { bgcolor: '#7a8fff', borderRadius: 2 },
-                    }}
-                  />
+                  <MotionBar value={pct} color="#7a8fff" bg="rgba(122,143,255,0.12)" />
                 </Box>
               );
             })}
@@ -468,7 +477,7 @@ export default function Dashboard() {
 
       {/* Budgets */}
       {budgetProgress.length > 0 && (
-        <Paper sx={{ p: 2.5 }}>
+        <Paper component={motion.div} {...cardMotion(3)} sx={{ p: 2.5 }}>
           <SectionLabel>Budgets</SectionLabel>
           <Stack spacing={1.5}>
             {budgetProgress.map((b) => (
@@ -482,18 +491,11 @@ export default function Dashboard() {
                     ${b.spent.toFixed(2)} / ${b.budget.toFixed(2)}
                   </Typography>
                 </Box>
-                <LinearProgress
-                  variant="determinate"
+                <MotionBar
                   value={Math.min(100, (b.spent / b.budget) * 100)}
-                  sx={{
-                    height: 4,
-                    borderRadius: 2,
-                    bgcolor: `${b.color}22`,
-                    '& .MuiLinearProgress-bar': {
-                      bgcolor: b.spent > b.budget ? 'error.main' : b.color,
-                      borderRadius: 2,
-                    },
-                  }}
+                  color={b.spent > b.budget ? '#f44336' : b.color}
+                  bg={`${b.color}22`}
+                  height={4}
                 />
               </Box>
             ))}

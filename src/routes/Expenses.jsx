@@ -16,6 +16,7 @@ import {
 } from '@mui/material';
 import SearchIcon from '@mui/icons-material/Search';
 import MoreVertIcon from '@mui/icons-material/MoreVert';
+import { AnimatePresence, motion } from 'motion/react';
 import { format, isToday, isYesterday } from 'date-fns';
 import { useExpenses } from '../store/useExpenses.js';
 import { useCategories } from '../store/useCategories.js';
@@ -33,6 +34,20 @@ const cardSx = (theme) => ({
       : '0 2px 12px rgba(0,0,0,0.08)',
   borderRadius: 2,
 });
+
+const EASE = [0.22, 1, 0.36, 1];
+const groupMotion = (i) => ({
+  initial: { opacity: 0, y: 14 },
+  animate: { opacity: 1, y: 0 },
+  transition: { duration: 0.32, ease: EASE, delay: Math.min(i, 6) * 0.05 },
+});
+
+const itemMotion = {
+  initial: { opacity: 0, x: -12 },
+  animate: { opacity: 1, x: 0 },
+  exit: { opacity: 0, x: 24, transition: { duration: 0.18 } },
+  transition: { duration: 0.25, ease: EASE },
+};
 
 function dayLabel(dateStr) {
   const d = new Date(dateStr + 'T00:00:00');
@@ -53,7 +68,12 @@ function ExpenseItem({ expense, onDelete, onEdit }) {
     <ListItem
       disableGutters
       secondaryAction={
-        <IconButton size="small" onClick={(e) => setAnchor(e.currentTarget)}>
+        <IconButton
+          size="small"
+          onClick={(e) => setAnchor(e.currentTarget)}
+          component={motion.button}
+          whileTap={{ scale: 0.85 }}
+        >
           <MoreVertIcon fontSize="small" />
         </IconButton>
       }
@@ -145,12 +165,18 @@ export default function Expenses() {
       />
 
       {grouped.length === 0 ? (
-        <Typography color="text.secondary" sx={{ textAlign: 'center', mt: 4 }}>
+        <Typography
+          component={motion.div}
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          color="text.secondary"
+          sx={{ textAlign: 'center', mt: 4 }}
+        >
           {search ? 'No results.' : 'No expenses yet — add your first!'}
         </Typography>
       ) : (
-        grouped.map(([day, items]) => (
-          <Paper key={day} sx={cardSx}>
+        grouped.map(([day, items], gi) => (
+          <Paper key={day} component={motion.div} {...groupMotion(gi)} sx={cardSx}>
             <Box
               sx={{
                 display: 'flex',
@@ -184,12 +210,14 @@ export default function Expenses() {
               </Typography>
             </Box>
             <List disablePadding sx={{ px: 2 }}>
-              {items.map((e, i) => (
-                <Box key={e.id}>
-                  <ExpenseItem expense={e} onDelete={deleteExpense} onEdit={setEditExpense} />
-                  {i < items.length - 1 && <Divider />}
-                </Box>
-              ))}
+              <AnimatePresence initial={false}>
+                {items.map((e, i) => (
+                  <Box key={e.id} component={motion.div} {...itemMotion}>
+                    <ExpenseItem expense={e} onDelete={deleteExpense} onEdit={setEditExpense} />
+                    {i < items.length - 1 && <Divider />}
+                  </Box>
+                ))}
+              </AnimatePresence>
             </List>
           </Paper>
         ))

@@ -1,5 +1,5 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
-import { Reorder, useDragControls } from 'motion/react';
+import { Children, useEffect, useMemo, useRef, useState } from 'react';
+import { motion, Reorder, useDragControls } from 'motion/react';
 import {
   Box,
   Button,
@@ -50,6 +50,13 @@ const sectionLabelSx = {
   color: 'text.secondary',
   mb: 1.5,
 };
+
+const EASE = [0.22, 1, 0.36, 1];
+const cardEntry = (i) => ({
+  initial: { opacity: 0, y: 14 },
+  animate: { opacity: 1, y: 0 },
+  transition: { duration: 0.32, ease: EASE, delay: 0.04 + i * 0.06 },
+});
 
 // ---- helpers ----
 
@@ -431,13 +438,7 @@ function DangerZoneSection({ onClearExpenses }) {
   }
 
   return (
-    <Paper
-      sx={{
-        ...cardSx,
-        border: '1px solid',
-        borderColor: 'error.main',
-      }}
-    >
+    <Paper sx={[cardSx, { border: '1px solid', borderColor: 'error.main' }]}>
       <Typography sx={{ ...sectionLabelSx, color: 'error.main' }}>Danger zone</Typography>
       <Button
         variant="outlined"
@@ -500,24 +501,23 @@ export default function Settings() {
   const deleteCategory = useCategories((s) => s.deleteCategory);
   const reorderCategories = useCategories((s) => s.reorderCategories);
 
-  return (
-    <Stack spacing={2}>
-      <CategoriesSection
-        categories={categories}
-        onSave={saveCategory}
-        onDelete={deleteCategory}
-        onReorder={reorderCategories}
-      />
-      <BudgetsSection categories={categories} budgets={budgets} onSet={setBudget} />
-      <RecurringSection
-        categories={categories}
-        recurring={recurring}
-        onAdd={addRecurring}
-        onDelete={deleteRecurring}
-      />
-      <ExportSection expenses={expenses} />
-      <DangerZoneSection onClearExpenses={clearExpenses} />
-      <Paper sx={cardSx}>
+  const sections = [
+    <CategoriesSection
+      categories={categories}
+      onSave={saveCategory}
+      onDelete={deleteCategory}
+      onReorder={reorderCategories}
+    />,
+    <BudgetsSection categories={categories} budgets={budgets} onSet={setBudget} />,
+    <RecurringSection
+      categories={categories}
+      recurring={recurring}
+      onAdd={addRecurring}
+      onDelete={deleteRecurring}
+    />,
+    <ExportSection expenses={expenses} />,
+    <DangerZoneSection onClearExpenses={clearExpenses} />,
+    <Paper sx={cardSx}>
         <Stack spacing={2}>
           <Box>
             <Typography sx={sectionLabelSx}>Account</Typography>
@@ -544,7 +544,16 @@ export default function Settings() {
             </>
           )}
         </Stack>
-      </Paper>
+      </Paper>,
+  ];
+
+  return (
+    <Stack spacing={2}>
+      {Children.map(sections, (child, i) => (
+        <motion.div key={i} {...cardEntry(i)}>
+          {child}
+        </motion.div>
+      ))}
     </Stack>
   );
 }
