@@ -1,8 +1,10 @@
 import { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Alert, Box, Button, Stack, TextField, Typography } from '@mui/material';
 import { useAuth } from '../store/useAuth.js';
 
 export default function Auth() {
+  const navigate = useNavigate();
   const signIn = useAuth((s) => s.signIn);
   const verifyOtp = useAuth((s) => s.verifyOtp);
   const [email, setEmail] = useState('');
@@ -31,6 +33,7 @@ export default function Auth() {
     setError(null);
     try {
       await verifyOtp(email, code.trim());
+      navigate('/add', { replace: true });
     } catch (err) {
       setError(err.message);
     } finally {
