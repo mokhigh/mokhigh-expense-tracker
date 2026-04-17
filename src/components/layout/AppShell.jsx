@@ -1,4 +1,5 @@
 import { useLocation, useNavigate, Outlet } from 'react-router-dom';
+import { motion } from 'motion/react';
 import {
   AppBar,
   Box,
@@ -146,60 +147,86 @@ export default function AppShell() {
 
       <Box
         component="main"
-        sx={{ flexGrow: 1, p: 2, pb: 'calc(80px + env(safe-area-inset-bottom))' }}
+        sx={{ flexGrow: 1, p: 2, pb: 'calc(96px + env(safe-area-inset-bottom))' }}
       >
         <Outlet />
       </Box>
 
-      <Paper
-        elevation={0}
+      <Box
         sx={{
           position: 'fixed',
-          bottom: 0,
-          left: 0,
-          right: 0,
-          borderRadius: 0,
-          borderTop: '1px solid',
-          borderColor: 'divider',
-          pb: 'env(safe-area-inset-bottom)',
+          bottom: 'calc(16px + env(safe-area-inset-bottom))',
+          left: '50%',
+          transform: 'translateX(-50%)',
           zIndex: theme.zIndex.appBar,
         }}
       >
-        <Box sx={{ display: 'flex', height: 68 }}>
+        <Paper
+          elevation={0}
+          sx={{
+            display: 'flex',
+            borderRadius: '100px',
+            overflow: 'hidden',
+            border: '1px solid',
+            borderColor: 'divider',
+            bgcolor: isDark ? 'rgba(18,18,18,0.85)' : 'rgba(255,255,255,0.85)',
+            backdropFilter: 'blur(16px)',
+            WebkitBackdropFilter: 'blur(16px)',
+            boxShadow: isDark
+              ? '0 8px 32px rgba(0,0,0,0.5)'
+              : '0 8px 32px rgba(0,0,0,0.12)',
+            px: 0.5,
+          }}
+        >
           {NAV.map(({ to, label, Icon }) => {
             const active = currentValue === to;
             return (
               <ButtonBase
                 key={to}
                 onClick={() => navigate(to)}
+                disableRipple
                 sx={{
-                  flex: 1,
                   display: 'flex',
                   flexDirection: 'column',
                   alignItems: 'center',
                   justifyContent: 'center',
                   gap: 0.5,
+                  px: 1.5,
+                  py: 1.25,
                   WebkitTapHighlightColor: 'transparent',
                 }}
               >
                 <Box
                   sx={{
-                    px: 2.5,
+                    position: 'relative',
+                    px: 2,
                     py: 0.75,
-                    borderRadius: '14px',
-                    bgcolor: active
-                      ? isDark
-                        ? 'rgba(255,255,255,0.1)'
-                        : 'rgba(0,0,0,0.07)'
-                      : 'transparent',
-                    color: active ? 'text.primary' : 'text.secondary',
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'center',
-                    transition: 'background-color 0.15s ease',
                   }}
                 >
-                  <Icon sx={{ fontSize: 22 }} />
+                  {active && (
+                    <Box
+                      component={motion.div}
+                      layoutId="nav-pill"
+                      transition={{ type: 'spring', stiffness: 400, damping: 34 }}
+                      sx={{
+                        position: 'absolute',
+                        inset: 0,
+                        borderRadius: '100px',
+                        bgcolor: isDark ? 'rgba(255,255,255,0.12)' : 'rgba(0,0,0,0.08)',
+                      }}
+                    />
+                  )}
+                  <Icon
+                    sx={{
+                      fontSize: 22,
+                      position: 'relative',
+                      zIndex: 1,
+                      color: active ? 'text.primary' : 'text.secondary',
+                    }}
+                  />
                 </Box>
                 <Typography
                   sx={{
@@ -208,6 +235,7 @@ export default function AppShell() {
                     letterSpacing: '0.06em',
                     textTransform: 'uppercase',
                     color: active ? 'text.primary' : 'text.secondary',
+                    transition: 'color 0.15s ease',
                     lineHeight: 1,
                   }}
                 >
@@ -216,8 +244,8 @@ export default function AppShell() {
               </ButtonBase>
             );
           })}
-        </Box>
-      </Paper>
+        </Paper>
+      </Box>
     </Box>
   );
 }
