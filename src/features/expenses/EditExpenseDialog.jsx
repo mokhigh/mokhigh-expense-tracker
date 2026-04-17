@@ -67,6 +67,7 @@ export function EditExpenseDialog({ expense, onClose, onSave }) {
             onChange={(e) => setNote(e.target.value)}
             multiline
             rows={2}
+            sx={{ '& .MuiInputBase-root': { fontSize: '1rem' } }}
           />
         </Stack>
       </DialogContent>

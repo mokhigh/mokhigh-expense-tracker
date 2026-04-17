@@ -109,7 +109,7 @@ export default function AddExpense() {
               rows={3}
               autoComplete="off"
               sx={{
-                '& .MuiInputBase-root': { py: 0.75, fontSize: '0.75rem' },
+                '& .MuiInputBase-root': { py: 0.75, fontSize: '1rem' },
                 '& textarea::placeholder': { opacity: 0.4 },
               }}
             />
