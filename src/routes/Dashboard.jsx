@@ -2,10 +2,21 @@ import { useMemo } from 'react';
 import { Box, Paper, Stack, Typography, useTheme } from '@mui/material';
 import { PieChart } from '@mui/x-charts';
 import { motion } from 'motion/react';
-import { format, startOfMonth, endOfMonth, eachDayOfInterval } from 'date-fns';
+import { format, startOfMonth, eachDayOfInterval, getDaysInMonth } from 'date-fns';
 import { useExpenses } from '../store/useExpenses.js';
 import { useBudgets } from '../store/useBudgets.js';
 import { useCategories } from '../store/useCategories.js';
+
+const TZ = 'America/Mazatlan';
+const tzDate = (d) =>
+  new Intl.DateTimeFormat('en-CA', {
+    timeZone: TZ,
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+  }).format(d instanceof Date ? d : new Date(d));
+const tzYM = (d) => tzDate(d).slice(0, 7);
+
 const EASE = [0.22, 1, 0.36, 1];
 const cardMotion = (i) => ({
   initial: { opacity: 0, y: 14 },
@@ -45,17 +56,35 @@ function SectionLabel({ children, sx = {} }) {
   );
 }
 
+function SubLabel({ children }) {
+  return (
+    <Typography
+      sx={{
+        fontSize: '0.58rem',
+        fontWeight: 700,
+        letterSpacing: '0.1em',
+        textTransform: 'uppercase',
+        color: 'text.disabled',
+        mb: 1.5,
+      }}
+    >
+      {children}
+    </Typography>
+  );
+}
+
 export default function Dashboard() {
   const theme = useTheme();
   const expenses = useExpenses((s) => s.expenses);
   const budgets = useBudgets((s) => s.budgets);
   const categories = useCategories((s) => s.categories);
 
+  const now = new Date();
+  const todayDay = parseInt(tzDate(now).slice(8));
+
   const thisMonth = useMemo(() => {
-    const now = new Date();
-    const start = startOfMonth(now).toISOString();
-    const end = endOfMonth(now).toISOString();
-    return expenses.filter((e) => e.spent_at >= start && e.spent_at <= end);
+    const key = tzYM(new Date());
+    return expenses.filter((e) => tzYM(e.spent_at) === key);
   }, [expenses]);
 
   const total = useMemo(
@@ -64,12 +93,10 @@ export default function Dashboard() {
   );
 
   const lastMonthTotal = useMemo(() => {
-    const now = new Date();
-    const lastMonthStart = new Date(now.getFullYear(), now.getMonth() - 1, 1);
-    const start = startOfMonth(lastMonthStart).toISOString();
-    const end = endOfMonth(lastMonthStart).toISOString();
+    const [y, m] = tzYM(new Date()).split('-').map(Number);
+    const lastKey = m === 1 ? `${y - 1}-12` : `${y}-${String(m - 1).padStart(2, '0')}`;
     return expenses
-      .filter((e) => e.spent_at >= start && e.spent_at <= end)
+      .filter((e) => tzYM(e.spent_at) === lastKey)
       .reduce((sum, e) => sum + Number(e.amount), 0);
   }, [expenses]);
 
@@ -91,12 +118,11 @@ export default function Dashboard() {
   }, [thisMonth, categories]);
 
   const barData = useMemo(() => {
-    const now = new Date();
     const days = eachDayOfInterval({ start: startOfMonth(now), end: now });
     return days.map((day) => {
       const key = format(day, 'yyyy-MM-dd');
       const dayTotal = thisMonth
-        .filter((e) => e.spent_at.slice(0, 10) === key)
+        .filter((e) => tzDate(e.spent_at) === key)
         .reduce((sum, e) => sum + Number(e.amount), 0);
       return { day: format(day, 'MMM d'), total: dayTotal };
     });
@@ -123,11 +149,81 @@ export default function Dashboard() {
       .filter((b) => b.budget > 0);
   }, [budgets, thisMonth, categories]);
 
+  // ── new metrics ──
+
+  const monthlyHistory = useMemo(() => {
+    return Array.from({ length: 6 }, (_, i) => {
+      const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+      const key = tzYM(d);
+      const monthTotal = expenses
+        .filter((e) => tzYM(e.spent_at) === key)
+        .reduce((s, e) => s + Number(e.amount), 0);
+      return { key, label: format(d, 'MMM yyyy'), total: monthTotal, isCurrent: i === 0 };
+    });
+  }, [expenses]);
+
+  const maxMonthlyTotal = useMemo(
+    () => Math.max(...monthlyHistory.map((m) => m.total), 1),
+    [monthlyHistory],
+  );
+
+  const projection = useMemo(() => {
+    if (todayDay === 0 || total === 0) return null;
+    const daysInMonth = getDaysInMonth(now);
+    const projected = (total / todayDay) * daysInMonth;
+    return { projected, daysLeft: daysInMonth - todayDay };
+  }, [total, todayDay]);
+
+  const checkpointData = useMemo(() => {
+    return Array.from({ length: 4 }, (_, i) => {
+      const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+      const key = tzYM(d);
+      const monthExp = expenses.filter((e) => tzYM(e.spent_at) === key);
+      const dayOf = (e) => parseInt(tzDate(e.spent_at).slice(8));
+      const by15 = monthExp.filter((e) => dayOf(e) <= 15).reduce((s, e) => s + Number(e.amount), 0);
+      const by30 = monthExp.filter((e) => dayOf(e) <= 30).reduce((s, e) => s + Number(e.amount), 0);
+      const full = monthExp.reduce((s, e) => s + Number(e.amount), 0);
+      return { key, label: format(d, i === 0 ? "'This'" : 'MMM'), by15, by30, full, isCurrent: i === 0 };
+    });
+  }, [expenses]);
+
+  const maxBy15 = useMemo(() => Math.max(...checkpointData.map((c) => c.by15), 1), [checkpointData]);
+  const maxBy30 = useMemo(() => Math.max(...checkpointData.map((c) => c.by30), 1), [checkpointData]);
+
+  const weekdayData = useMemo(() => {
+    const DAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+    const totals = new Array(7).fill(0);
+    for (const e of thisMonth) {
+      const [y, mo, d] = tzDate(e.spent_at).split('-').map(Number);
+      totals[new Date(y, mo - 1, d).getDay()] += Number(e.amount);
+    }
+    return DAYS.map((label, i) => ({ label, total: totals[i] }));
+  }, [thisMonth]);
+
+  const maxWeekday = useMemo(() => Math.max(...weekdayData.map((d) => d.total), 1), [weekdayData]);
+
+  // ── derived render values ──
+
   const intPart = Math.floor(total).toLocaleString();
   const decPart = String(Math.round((total % 1) * 100)).padStart(2, '0');
   const isPositive = (percentChange ?? 0) >= 0;
-  const now = new Date();
   const lastMonthDate = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+
+  const cardSx = {
+    p: 2.5,
+    background:
+      theme.palette.mode === 'dark'
+        ? 'linear-gradient(140deg, #0a0a0a 0%, #111111 55%, #161616 100%)'
+        : theme.palette.background.paper,
+    border: `1px solid ${theme.palette.mode === 'dark' ? 'rgba(255,255,255,0.07)' : 'rgba(0,0,0,0.08)'}`,
+    boxShadow:
+      theme.palette.mode === 'dark'
+        ? '0 0 0 1px rgba(0,0,0,0.3), 0 4px 20px rgba(0,0,0,0.4)'
+        : '0 2px 12px rgba(0,0,0,0.08)',
+  };
+
+  const hasHistory = monthlyHistory.slice(1).some((m) => m.total > 0);
+  const hasWeekdayData = weekdayData.some((d) => d.total > 0);
 
   return (
     <Stack spacing={2.5}>
@@ -215,25 +311,66 @@ export default function Dashboard() {
             </Typography>
           </Box>
         )}
+
+        {projection && (
+          <Typography sx={{ fontSize: '0.72rem', color: 'text.secondary', mt: 0.75 }}>
+            At this pace —{' '}
+            <Box component="span" sx={{ color: 'text.primary', fontWeight: 600 }}>
+              ~${Math.round(projection.projected).toLocaleString()}
+            </Box>{' '}
+            projected · {projection.daysLeft}d left
+          </Typography>
+        )}
       </Paper>
+
+      {/* Monthly trend */}
+      {hasHistory && (
+        <Paper component={motion.div} {...cardMotion(1)} sx={cardSx}>
+          <SectionLabel>Monthly trend</SectionLabel>
+          <Stack spacing={1.5}>
+            {monthlyHistory.map((m) => {
+              const pct = Math.round((m.total / maxMonthlyTotal) * 100);
+              return (
+                <Box key={m.key}>
+                  <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 0.5 }}>
+                    <Typography
+                      sx={{
+                        fontSize: '0.82rem',
+                        fontWeight: m.isCurrent ? 700 : 400,
+                        color: m.isCurrent ? 'text.primary' : 'text.secondary',
+                      }}
+                    >
+                      {m.label}
+                    </Typography>
+                    <Typography
+                      sx={{
+                        fontFamily: '"Roboto Mono", "Courier New", monospace',
+                        fontSize: '0.82rem',
+                        fontWeight: m.isCurrent ? 700 : 400,
+                        color: m.isCurrent ? 'text.primary' : 'text.secondary',
+                      }}
+                    >
+                      {m.total > 0 ? `$${Math.round(m.total).toLocaleString()}` : '—'}
+                    </Typography>
+                  </Box>
+                  <MotionBar
+                    value={pct}
+                    color={m.isCurrent ? '#7a8fff' : theme.palette.mode === 'dark' ? '#4b5563' : '#9ca3af'}
+                    bg={m.isCurrent ? 'rgba(122,143,255,0.12)' : 'rgba(107,114,128,0.08)'}
+                  />
+                </Box>
+              );
+            })}
+          </Stack>
+        </Paper>
+      )}
 
       {/* By category */}
       {pieData.length > 0 && (
         <Paper
           component={motion.div}
-          {...cardMotion(1)}
-          sx={{
-            p: 2.5,
-            background:
-              theme.palette.mode === 'dark'
-                ? 'linear-gradient(140deg, #0a0a0a 0%, #111111 55%, #161616 100%)'
-                : theme.palette.background.paper,
-            border: `1px solid ${theme.palette.mode === 'dark' ? 'rgba(255,255,255,0.07)' : 'rgba(0,0,0,0.08)'}`,
-            boxShadow:
-              theme.palette.mode === 'dark'
-                ? '0 0 0 1px rgba(0,0,0,0.3), 0 4px 20px rgba(0,0,0,0.4)'
-                : '0 2px 12px rgba(0,0,0,0.08)',
-          }}
+          {...cardMotion(2)}
+          sx={cardSx}
         >
           <SectionLabel>By category</SectionLabel>
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
@@ -296,14 +433,7 @@ export default function Dashboard() {
                         mb: 0.5,
                       }}
                     >
-                      <Box
-                        sx={{
-                          display: 'flex',
-                          alignItems: 'center',
-                          gap: 1,
-                          minWidth: 0,
-                        }}
-                      >
+                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, minWidth: 0 }}>
                         <Box
                           sx={{
                             width: 9,
@@ -343,19 +473,8 @@ export default function Dashboard() {
       {spendingDays.length > 0 && (
         <Paper
           component={motion.div}
-          {...cardMotion(2)}
-          sx={{
-            p: 2.5,
-            background:
-              theme.palette.mode === 'dark'
-                ? 'linear-gradient(140deg, #0a0a0a 0%, #111111 55%, #161616 100%)'
-                : theme.palette.background.paper,
-            border: `1px solid ${theme.palette.mode === 'dark' ? 'rgba(255,255,255,0.07)' : 'rgba(0,0,0,0.08)'}`,
-            boxShadow:
-              theme.palette.mode === 'dark'
-                ? '0 0 0 1px rgba(0,0,0,0.3), 0 4px 20px rgba(0,0,0,0.4)'
-                : '0 2px 12px rgba(0,0,0,0.08)',
-          }}
+          {...cardMotion(4)}
+          sx={cardSx}
         >
           <SectionLabel>Daily spend</SectionLabel>
 
@@ -475,9 +594,103 @@ export default function Dashboard() {
         </Paper>
       )}
 
+      {/* Month checkpoints — day 15 & day 30 */}
+      {total > 0 && (
+        <Paper component={motion.div} {...cardMotion(3)} sx={cardSx}>
+          <SectionLabel>Month checkpoints</SectionLabel>
+
+          <SubLabel>By day 15</SubLabel>
+          <Stack spacing={1.5} sx={{ mb: 3 }}>
+            {checkpointData.map((c) => {
+              const pct = Math.round((c.by15 / maxBy15) * 100);
+              return (
+                <Box key={c.key + '-15'}>
+                  <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 0.5 }}>
+                    <Typography sx={{ fontSize: '0.82rem', fontWeight: c.isCurrent ? 700 : 400, color: c.isCurrent ? 'text.primary' : 'text.secondary' }}>
+                      {c.label}
+                    </Typography>
+                    <Typography sx={{ fontFamily: '"Roboto Mono", "Courier New", monospace', fontSize: '0.82rem', fontWeight: c.isCurrent ? 700 : 400, color: c.isCurrent ? 'text.primary' : 'text.secondary' }}>
+                      {c.by15 > 0 ? `$${Math.round(c.by15).toLocaleString()}` : '—'}
+                    </Typography>
+                  </Box>
+                  <MotionBar
+                    value={pct}
+                    color={c.isCurrent ? '#a78bfa' : theme.palette.mode === 'dark' ? '#4b5563' : '#9ca3af'}
+                    bg={c.isCurrent ? 'rgba(167,139,250,0.12)' : 'rgba(107,114,128,0.08)'}
+                  />
+                </Box>
+              );
+            })}
+          </Stack>
+
+          <SubLabel>
+            By day 30{todayDay < 30 ? ' · in progress' : ''}
+          </SubLabel>
+          <Stack spacing={1.5}>
+            {checkpointData.map((c) => {
+              const pct = Math.round((c.by30 / maxBy30) * 100);
+              return (
+                <Box key={c.key + '-30'}>
+                  <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 0.5 }}>
+                    <Typography sx={{ fontSize: '0.82rem', fontWeight: c.isCurrent ? 700 : 400, color: c.isCurrent ? 'text.primary' : 'text.secondary' }}>
+                      {c.label}
+                    </Typography>
+                    <Typography sx={{ fontFamily: '"Roboto Mono", "Courier New", monospace', fontSize: '0.82rem', fontWeight: c.isCurrent ? 700 : 400, color: c.isCurrent ? 'text.primary' : 'text.secondary' }}>
+                      {c.by30 > 0 ? `$${Math.round(c.by30).toLocaleString()}` : '—'}
+                    </Typography>
+                  </Box>
+                  <MotionBar
+                    value={pct}
+                    color={c.isCurrent ? '#f59e0b' : theme.palette.mode === 'dark' ? '#4b5563' : '#9ca3af'}
+                    bg={c.isCurrent ? 'rgba(245,158,11,0.12)' : 'rgba(107,114,128,0.08)'}
+                  />
+                </Box>
+              );
+            })}
+          </Stack>
+        </Paper>
+      )}
+
+      {/* Weekday patterns */}
+      {hasWeekdayData && (
+        <Paper component={motion.div} {...cardMotion(5)} sx={cardSx}>
+          <SectionLabel>Weekday patterns</SectionLabel>
+          <Stack spacing={1.5}>
+            {weekdayData.map((d) => {
+              const pct = Math.round((d.total / maxWeekday) * 100);
+              return (
+                <Box key={d.label}>
+                  <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 0.5 }}>
+                    <Typography
+                      sx={{
+                        fontSize: '0.82rem',
+                        fontWeight: 500,
+                        color: d.total > 0 ? 'text.primary' : 'text.disabled',
+                      }}
+                    >
+                      {d.label}
+                    </Typography>
+                    <Typography
+                      sx={{
+                        fontFamily: '"Roboto Mono", "Courier New", monospace',
+                        fontSize: '0.82rem',
+                        color: d.total > 0 ? 'text.primary' : 'text.disabled',
+                      }}
+                    >
+                      {d.total > 0 ? `$${Math.round(d.total).toLocaleString()}` : '—'}
+                    </Typography>
+                  </Box>
+                  <MotionBar value={pct} color="#34d399" bg="rgba(52,211,153,0.1)" />
+                </Box>
+              );
+            })}
+          </Stack>
+        </Paper>
+      )}
+
       {/* Budgets */}
       {budgetProgress.length > 0 && (
-        <Paper component={motion.div} {...cardMotion(3)} sx={{ p: 2.5 }}>
+        <Paper component={motion.div} {...cardMotion(6)} sx={{ p: 2.5 }}>
           <SectionLabel>Budgets</SectionLabel>
           <Stack spacing={1.5}>
             {budgetProgress.map((b) => (

@@ -16,11 +16,27 @@ import {
 } from '@mui/material';
 import SearchIcon from '@mui/icons-material/Search';
 import MoreVertIcon from '@mui/icons-material/MoreVert';
+import ChevronLeftIcon from '@mui/icons-material/ChevronLeft';
+import ChevronRightIcon from '@mui/icons-material/ChevronRight';
 import { AnimatePresence, motion } from 'motion/react';
-import { format, isToday, isYesterday } from 'date-fns';
+import { format } from 'date-fns';
 import { useExpenses } from '../store/useExpenses.js';
 import { useCategories } from '../store/useCategories.js';
 import { EditExpenseDialog } from '../features/expenses/EditExpenseDialog.jsx';
+
+const TZ = 'America/Mazatlan';
+
+const toMonthKey = (date) =>
+  `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
+
+const currentMonthKey = toMonthKey(new Date());
+const tzDate = (d) =>
+  new Intl.DateTimeFormat('en-CA', {
+    timeZone: TZ,
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+  }).format(d instanceof Date ? d : new Date(d));
 
 const cardSx = (theme) => ({
   background:
@@ -50,10 +66,60 @@ const itemMotion = {
 };
 
 function dayLabel(dateStr) {
-  const d = new Date(dateStr + 'T00:00:00');
-  if (isToday(d)) return 'Today';
-  if (isYesterday(d)) return 'Yesterday';
-  return format(d, 'EEE, MMM d');
+  const today = tzDate(new Date());
+  if (dateStr === today) return 'Today';
+  const [y, m, d] = today.split('-').map(Number);
+  if (dateStr === tzDate(new Date(y, m - 1, d - 1))) return 'Yesterday';
+  return format(new Date(dateStr + 'T12:00:00'), 'EEE, MMM d');
+}
+
+function MonthCarousel({ value, onChange }) {
+  const isNow = value === currentMonthKey;
+
+  const shift = (delta) => {
+    const [y, m] = value.split('-').map(Number);
+    onChange(toMonthKey(new Date(y, m - 1 + delta, 1)));
+  };
+
+  return (
+    <Box
+      component={motion.div}
+      drag="x"
+      dragConstraints={{ left: 0, right: 0 }}
+      dragElastic={0.1}
+      onDragEnd={(_, info) => {
+        if (info.offset.x > 60) shift(-1);
+        else if (info.offset.x < -60 && !isNow) shift(1);
+      }}
+      sx={{
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        gap: 0.5,
+        py: 0.5,
+        userSelect: 'none',
+        touchAction: 'pan-y',
+      }}
+    >
+      <IconButton size="small" onClick={() => shift(-1)}>
+        <ChevronLeftIcon fontSize="small" />
+      </IconButton>
+      <Typography
+        sx={{
+          minWidth: 148,
+          textAlign: 'center',
+          fontWeight: 700,
+          fontSize: '0.9rem',
+          letterSpacing: '0.02em',
+        }}
+      >
+        {format(new Date(`${value}-01`), 'MMMM yyyy')}
+      </Typography>
+      <IconButton size="small" onClick={() => shift(1)} disabled={isNow}>
+        <ChevronRightIcon fontSize="small" />
+      </IconButton>
+    </Box>
+  );
 }
 
 function ExpenseItem({ expense, onDelete, onEdit }) {
@@ -125,24 +191,26 @@ export default function Expenses() {
   const expenses = useExpenses((s) => s.expenses);
   const deleteExpense = useExpenses((s) => s.deleteExpense);
   const updateExpense = useExpenses((s) => s.updateExpense);
+  const [monthKey, setMonthKey] = useState(currentMonthKey);
   const [search, setSearch] = useState('');
   const [editExpense, setEditExpense] = useState(null);
 
   const filtered = useMemo(() => {
     const q = search.trim().toLowerCase();
-    if (!q) return expenses;
-    return expenses.filter(
+    const base = expenses.filter((e) => tzDate(e.spent_at).startsWith(monthKey));
+    if (!q) return base;
+    return base.filter(
       (e) =>
         e.note?.toLowerCase().includes(q) ||
         e.category?.toLowerCase().includes(q) ||
         String(e.amount).includes(q),
     );
-  }, [expenses, search]);
+  }, [expenses, search, monthKey]);
 
   const grouped = useMemo(() => {
     const map = new Map();
     for (const e of filtered) {
-      const key = e.spent_at.slice(0, 10);
+      const key = tzDate(e.spent_at);
       if (!map.has(key)) map.set(key, []);
       map.get(key).push(e);
     }
@@ -151,6 +219,7 @@ export default function Expenses() {
 
   return (
     <Stack spacing={2}>
+      <MonthCarousel value={monthKey} onChange={setMonthKey} />
       <TextField
         placeholder="Search"
         value={search}
@@ -172,7 +241,9 @@ export default function Expenses() {
           color="text.secondary"
           sx={{ textAlign: 'center', mt: 4 }}
         >
-          {search ? 'No results.' : 'No expenses yet — add your first!'}
+          {search
+            ? 'No results.'
+            : `No expenses in ${format(new Date(`${monthKey}-01`), 'MMMM yyyy')}.`}
         </Typography>
       ) : (
         grouped.map(([day, items], gi) => (

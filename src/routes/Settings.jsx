@@ -313,7 +313,6 @@ function CategoryDialog({ cat, onClose, onSave }) {
               onChange={(e) => setColor(e.target.value)}
               style={{ width: 44, height: 30, border: 'none', cursor: 'pointer', background: 'none' }}
             />
-            <Box sx={{ width: 22, height: 22, borderRadius: '50%', bgcolor: color }} />
           </Box>
         </Stack>
       </DialogContent>

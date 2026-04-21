@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { createPortal } from 'react-dom';
-import { Alert, Box, Fab, Paper, Stack, TextField, Typography } from '@mui/material';
+import { Alert, Box, Fab, Paper, Snackbar, Stack, TextField, Typography } from '@mui/material';
 import { DateCalendar } from '@mui/x-date-pickers';
 import { AnimatePresence, motion } from 'motion/react';
 import SaveRoundedIcon from '@mui/icons-material/SaveRounded';
@@ -58,7 +58,6 @@ export default function AddExpense() {
       setDate(new Date());
       setCategory('other');
       setSuccess(true);
-      setTimeout(() => setSuccess(false), 2000);
     } catch (err) {
       setError(err.message);
     } finally {
@@ -150,19 +149,22 @@ export default function AddExpense() {
         </Paper>
 
         {error && <Alert severity="error">{error}</Alert>}
-
-        <AnimatePresence>
-          {success && (
-            <motion.div
-              initial={{ opacity: 0, y: -8 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0 }}
-            >
-              <Alert severity="success">Expense saved!</Alert>
-            </motion.div>
-          )}
-        </AnimatePresence>
       </Stack>
+
+      <Snackbar
+        open={success}
+        autoHideDuration={2000}
+        onClose={() => setSuccess(false)}
+        anchorOrigin={{ vertical: 'top', horizontal: 'center' }}
+        sx={{
+          top: {
+            xs: 'calc(env(safe-area-inset-top, 0px) + 8px) !important',
+            md: '8px !important',
+          },
+        }}
+      >
+        <Alert severity="success" sx={{ width: '100%' }}>Expense saved!</Alert>
+      </Snackbar>
 
       {createPortal(
         <Box
