@@ -277,7 +277,7 @@ function RecurringSection({ categories, recurring, onAdd, onDelete }) {
 
 // ---- Categories ----
 
-function CategoryDialog({ cat, onClose, onSave }) {
+function CategoryDialog({ cat, onClose, onSave, initialSortOrder = 0 }) {
   const [label, setLabel] = useState(cat?.label ?? '');
   const [color, setColor] = useState(cat?.color ?? '#6366f1');
 
@@ -287,7 +287,7 @@ function CategoryDialog({ cat, onClose, onSave }) {
       id: cat?.id ?? label.trim().toLowerCase().replace(/\s+/g, '-'),
       label: label.trim(),
       color,
-      sort_order: cat?.sort_order ?? Date.now(),
+      sort_order: cat?.sort_order ?? initialSortOrder,
     });
     onClose();
   }
@@ -405,7 +405,7 @@ function CategoriesSection({ categories, onSave, onDelete, onReorder }) {
       </Reorder.Group>
 
       {adding && (
-        <CategoryDialog cat={null} onClose={() => setAdding(false)} onSave={onSave} />
+        <CategoryDialog cat={null} onClose={() => setAdding(false)} onSave={onSave} initialSortOrder={localCats.length} />
       )}
       {editCat && (
         <CategoryDialog cat={editCat} onClose={() => setEditCat(null)} onSave={onSave} />

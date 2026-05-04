@@ -14,8 +14,17 @@ export const useCategories = create((set) => ({
 
     if (isSupabaseConfigured && userId) {
       try {
+        // Snapshot local state before pull overwrites it
+        const localBefore = await db.categories.toArray();
         const { pulled } = await pullCategories();
         if (pulled > 0) {
+          const remoteIds = new Set((await db.categories.toArray()).map((c) => c.id));
+          // Recover any locally-created categories that never made it to Supabase
+          const orphans = localBefore.filter((c) => !remoteIds.has(c.id));
+          if (orphans.length > 0) {
+            await db.categories.bulkPut(orphans);
+            pushCategories(orphans, userId).catch(() => {});
+          }
           const cats = await db.categories.orderBy('sort_order').toArray();
           set({ categories: cats });
           return;
