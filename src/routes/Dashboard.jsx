@@ -1,726 +1,176 @@
-import { useMemo } from 'react';
-import { Box, Paper, Stack, Typography, useTheme } from '@mui/material';
-import { PieChart } from '@mui/x-charts';
-import { motion } from 'motion/react';
-import { format, startOfMonth, eachDayOfInterval, getDaysInMonth } from 'date-fns';
-import { useExpenses } from '../store/useExpenses.js';
-import { useBudgets } from '../store/useBudgets.js';
-import { useCategories } from '../store/useCategories.js';
-
-const TZ = 'America/Mazatlan';
-const tzDate = (d) =>
-  new Intl.DateTimeFormat('en-CA', {
-    timeZone: TZ,
-    year: 'numeric',
-    month: '2-digit',
-    day: '2-digit',
-  }).format(d instanceof Date ? d : new Date(d));
-const tzYM = (d) => tzDate(d).slice(0, 7);
-
-const EASE = [0.22, 1, 0.36, 1];
-const cardMotion = (i) => ({
-  initial: { opacity: 0, y: 14 },
-  animate: { opacity: 1, y: 0 },
-  transition: { duration: 0.4, ease: EASE, delay: 0.05 + i * 0.07 },
-});
-
-function MotionBar({ value, color, bg, height = 3 }) {
-  return (
-    <Box sx={{ height, borderRadius: 2, bgcolor: bg, overflow: 'hidden' }}>
-      <Box
-        component={motion.div}
-        initial={{ width: 0 }}
-        animate={{ width: `${Math.min(100, Math.max(0, value))}%` }}
-        transition={{ duration: 0.7, ease: [0.22, 1, 0.36, 1], delay: 0.1 }}
-        sx={{ height: '100%', bgcolor: color, borderRadius: 2 }}
-      />
-    </Box>
-  );
-}
-
-function SectionLabel({ children, sx = {} }) {
-  return (
-    <Typography
-      sx={{
-        fontSize: '0.65rem',
-        fontWeight: 700,
-        letterSpacing: '0.12em',
-        textTransform: 'uppercase',
-        color: 'text.secondary',
-        mb: 2,
-        ...sx,
-      }}
-    >
-      {children}
-    </Typography>
-  );
-}
-
-function SubLabel({ children }) {
-  return (
-    <Typography
-      sx={{
-        fontSize: '0.58rem',
-        fontWeight: 700,
-        letterSpacing: '0.1em',
-        textTransform: 'uppercase',
-        color: 'text.disabled',
-        mb: 1.5,
-      }}
-    >
-      {children}
-    </Typography>
-  );
-}
+import { Stack, Typography, useTheme, useMediaQuery } from '@mui/material';
+import Grid from '@mui/material/Grid2';
+import { useDashboardData } from '../features/dashboard/useDashboardData.js';
+import HeroCard from '../features/dashboard/cards/HeroCard.jsx';
+import KpiStrip from '../features/dashboard/cards/KpiStrip.jsx';
+import ByCategoryCard from '../features/dashboard/cards/ByCategoryCard.jsx';
+import MonthlyTrendCard from '../features/dashboard/cards/MonthlyTrendCard.jsx';
+import BudgetsCard from '../features/dashboard/cards/BudgetsCard.jsx';
+import CumulativeSpendCard from '../features/dashboard/cards/CumulativeSpendCard.jsx';
+import CategoryDeltasCard from '../features/dashboard/cards/CategoryDeltasCard.jsx';
+import TopExpensesCard from '../features/dashboard/cards/TopExpensesCard.jsx';
+import DailySpendCard from '../features/dashboard/cards/DailySpendCard.jsx';
+import MonthCheckpointsCard from '../features/dashboard/cards/MonthCheckpointsCard.jsx';
+import WeekdayPatternsCard from '../features/dashboard/cards/WeekdayPatternsCard.jsx';
+import SpendingPaceCard from '../features/dashboard/cards/SpendingPaceCard.jsx';
 
 export default function Dashboard() {
   const theme = useTheme();
-  const expenses = useExpenses((s) => s.expenses);
-  const budgets = useBudgets((s) => s.budgets);
-  const categories = useCategories((s) => s.categories);
+  const isDesktop = useMediaQuery(theme.breakpoints.up('md'));
+  const d = useDashboardData();
 
-  const now = new Date();
-  const todayDay = parseInt(tzDate(now).slice(8));
-
-  const thisMonth = useMemo(() => {
-    const key = tzYM(new Date());
-    return expenses.filter((e) => tzYM(e.spent_at) === key);
-  }, [expenses]);
-
-  const total = useMemo(
-    () => thisMonth.reduce((sum, e) => sum + Number(e.amount), 0),
-    [thisMonth],
+  const hero = (
+    <HeroCard
+      now={d.now}
+      total={d.total}
+      percentChange={d.percentChange}
+      lastMonthDate={d.lastMonthDate}
+      projection={d.projection}
+    />
   );
 
-  const lastMonthTotal = useMemo(() => {
-    const [y, m] = tzYM(new Date()).split('-').map(Number);
-    const lastKey = m === 1 ? `${y - 1}-12` : `${y}-${String(m - 1).padStart(2, '0')}`;
-    return expenses
-      .filter((e) => tzYM(e.spent_at) === lastKey)
-      .reduce((sum, e) => sum + Number(e.amount), 0);
-  }, [expenses]);
-
-  const percentChange =
-    lastMonthTotal > 0 ? ((total - lastMonthTotal) / lastMonthTotal) * 100 : null;
-
-  const pieData = useMemo(() => {
-    const map = {};
-    for (const e of thisMonth) {
-      map[e.category] = (map[e.category] ?? 0) + Number(e.amount);
-    }
-    return Object.entries(map)
-      .map(([id, value]) => {
-        const cat = categories.find((c) => c.id === id);
-        return { id, value, label: cat?.label ?? id, color: cat?.color ?? '#888888' };
-      })
-      .filter((d) => d.value > 0)
-      .sort((a, b) => b.value - a.value);
-  }, [thisMonth, categories]);
-
-  const barData = useMemo(() => {
-    const days = eachDayOfInterval({ start: startOfMonth(now), end: now });
-    return days.map((day) => {
-      const key = format(day, 'yyyy-MM-dd');
-      const dayTotal = thisMonth
-        .filter((e) => tzDate(e.spent_at) === key)
-        .reduce((sum, e) => sum + Number(e.amount), 0);
-      return { day: format(day, 'MMM d'), total: dayTotal };
-    });
-  }, [thisMonth]);
-
-  const spendingDays = useMemo(() => barData.filter((d) => d.total > 0), [barData]);
-  const maxDaySpend = useMemo(() => Math.max(...barData.map((d) => d.total), 1), [barData]);
-
-  const budgetProgress = useMemo(() => {
-    return budgets
-      .map(({ category, amount }) => {
-        const spent = thisMonth
-          .filter((e) => e.category === category)
-          .reduce((sum, e) => sum + Number(e.amount), 0);
-        const cat = categories.find((c) => c.id === category);
-        return {
-          category,
-          label: cat?.label ?? category,
-          color: cat?.color ?? '#888888',
-          budget: amount,
-          spent,
-        };
-      })
-      .filter((b) => b.budget > 0);
-  }, [budgets, thisMonth, categories]);
-
-  // ── new metrics ──
-
-  const monthlyHistory = useMemo(() => {
-    return Array.from({ length: 6 }, (_, i) => {
-      const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
-      const key = tzYM(d);
-      const monthTotal = expenses
-        .filter((e) => tzYM(e.spent_at) === key)
-        .reduce((s, e) => s + Number(e.amount), 0);
-      return { key, label: format(d, 'MMM yyyy'), total: monthTotal, isCurrent: i === 0 };
-    });
-  }, [expenses]);
-
-  const maxMonthlyTotal = useMemo(
-    () => Math.max(...monthlyHistory.map((m) => m.total), 1),
-    [monthlyHistory],
+  const kpiStrip = (
+    <KpiStrip
+      avgPerActiveDay={d.avgPerActiveDay}
+      spendingDays={d.spendingDays}
+      projection={d.projection}
+      sixMonthAvg={d.sixMonthAvg}
+      isDesktop={isDesktop}
+    />
   );
 
-  const projection = useMemo(() => {
-    if (todayDay === 0 || total === 0) return null;
-    const daysInMonth = getDaysInMonth(now);
-    const projected = (total / todayDay) * daysInMonth;
-    return { projected, daysLeft: daysInMonth - todayDay };
-  }, [total, todayDay]);
-
-  const checkpointData = useMemo(() => {
-    return Array.from({ length: 4 }, (_, i) => {
-      const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
-      const key = tzYM(d);
-      const monthExp = expenses.filter((e) => tzYM(e.spent_at) === key);
-      const dayOf = (e) => parseInt(tzDate(e.spent_at).slice(8));
-      const by15 = monthExp.filter((e) => dayOf(e) <= 15).reduce((s, e) => s + Number(e.amount), 0);
-      const by30 = monthExp.filter((e) => dayOf(e) <= 30).reduce((s, e) => s + Number(e.amount), 0);
-      const full = monthExp.reduce((s, e) => s + Number(e.amount), 0);
-      return { key, label: format(d, i === 0 ? "'This'" : 'MMM'), by15, by30, full, isCurrent: i === 0 };
-    });
-  }, [expenses]);
-
-  const maxBy15 = useMemo(() => Math.max(...checkpointData.map((c) => c.by15), 1), [checkpointData]);
-  const maxBy30 = useMemo(() => Math.max(...checkpointData.map((c) => c.by30), 1), [checkpointData]);
-
-  const weekdayData = useMemo(() => {
-    const DAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
-    const totals = new Array(7).fill(0);
-    for (const e of thisMonth) {
-      const [y, mo, d] = tzDate(e.spent_at).split('-').map(Number);
-      totals[new Date(y, mo - 1, d).getDay()] += Number(e.amount);
-    }
-    return DAYS.map((label, i) => ({ label, total: totals[i] }));
-  }, [thisMonth]);
-
-  const maxWeekday = useMemo(() => Math.max(...weekdayData.map((d) => d.total), 1), [weekdayData]);
-
-  // ── derived render values ──
-
-  const intPart = Math.floor(total).toLocaleString();
-  const decPart = String(Math.round((total % 1) * 100)).padStart(2, '0');
-  const isPositive = (percentChange ?? 0) >= 0;
-  const lastMonthDate = new Date(now.getFullYear(), now.getMonth() - 1, 1);
-
-  const cardSx = {
-    p: 2.5,
-    background:
-      theme.palette.mode === 'dark'
-        ? 'linear-gradient(140deg, #0a0a0a 0%, #111111 55%, #161616 100%)'
-        : theme.palette.background.paper,
-    border: `1px solid ${theme.palette.mode === 'dark' ? 'rgba(255,255,255,0.07)' : 'rgba(0,0,0,0.08)'}`,
-    boxShadow:
-      theme.palette.mode === 'dark'
-        ? '0 0 0 1px rgba(0,0,0,0.3), 0 4px 20px rgba(0,0,0,0.4)'
-        : '0 2px 12px rgba(0,0,0,0.08)',
-  };
-
-  const hasHistory = monthlyHistory.slice(1).some((m) => m.total > 0);
-  const hasWeekdayData = weekdayData.some((d) => d.total > 0);
-
-  return (
-    <Stack spacing={2.5}>
-      {/* Hero total card */}
-      <Paper
-        component={motion.div}
-        {...cardMotion(0)}
-        sx={{
-          p: 2.5,
-          background:
-            theme.palette.mode === 'dark'
-              ? 'linear-gradient(140deg, #080e24 0%, #0e1a45 55%, #142060 100%)'
-              : 'linear-gradient(140deg, #eef0ff 0%, #e8ecff 55%, #e3e9ff 100%)',
-          border: `1px solid ${theme.palette.mode === 'dark' ? 'rgba(99,130,255,0.18)' : 'rgba(99,130,255,0.25)'}`,
-          boxShadow:
-            theme.palette.mode === 'dark'
-              ? '0 0 0 1px rgba(99,130,255,0.08), 0 8px 40px rgba(14,26,69,0.7), 0 0 60px rgba(30,58,138,0.25)'
-              : '0 4px 20px rgba(99,130,255,0.15)',
-        }}
-      >
-        <Typography
-          sx={{
-            fontSize: '0.65rem',
-            fontWeight: 700,
-            letterSpacing: '0.12em',
-            textTransform: 'uppercase',
-            color: 'text.secondary',
-            mb: 1.5,
-          }}
-        >
-          {format(now, 'MMMM yyyy')} total
-        </Typography>
-
-        <Box sx={{ display: 'flex', alignItems: 'baseline', gap: 0.5 }}>
-          <Typography
-            sx={{
-              fontFamily: '"Roboto Mono", "Courier New", monospace',
-              fontSize: '2.75rem',
-              fontWeight: 700,
-              lineHeight: 1,
-              letterSpacing: '-0.05em',
-              color: 'text.primary',
-            }}
-          >
-            ${intPart}
-          </Typography>
-          <Typography
-            sx={{
-              fontFamily: '"Roboto Mono", "Courier New", monospace',
-              fontSize: '1.4rem',
-              fontWeight: 500,
-              color: 'text.secondary',
-              lineHeight: 1,
-            }}
-          >
-            .{decPart}
-          </Typography>
-        </Box>
-
-        {percentChange !== null && (
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mt: 1.5 }}>
-            <Box
-              sx={{
-                display: 'inline-flex',
-                alignItems: 'center',
-                gap: 0.4,
-                bgcolor: isPositive ? 'rgba(74,222,128,0.12)' : 'rgba(248,113,113,0.12)',
-                color: isPositive ? '#4ade80' : '#f87171',
-                border: '1px solid',
-                borderColor: isPositive ? 'rgba(74,222,128,0.3)' : 'rgba(248,113,113,0.3)',
-                px: 1.25,
-                py: 0.35,
-                borderRadius: 10,
-                fontFamily: '"Roboto Mono", "Courier New", monospace',
-                fontSize: '0.72rem',
-                fontWeight: 700,
-                lineHeight: 1.5,
-                letterSpacing: '0.02em',
-              }}
-            >
-              {isPositive ? '▲' : '▼'} {isPositive ? '+' : ''}{percentChange.toFixed(1)}%
-            </Box>
-            <Typography sx={{ fontSize: '0.75rem', color: 'text.secondary' }}>
-              vs {format(lastMonthDate, 'MMMM yyyy')}
-            </Typography>
-          </Box>
-        )}
-
-        {projection && (
-          <Typography sx={{ fontSize: '0.72rem', color: 'text.secondary', mt: 0.75 }}>
-            At this pace —{' '}
-            <Box component="span" sx={{ color: 'text.primary', fontWeight: 600 }}>
-              ~${Math.round(projection.projected).toLocaleString()}
-            </Box>{' '}
-            projected · {projection.daysLeft}d left
-          </Typography>
-        )}
-      </Paper>
-
-      {/* Monthly trend */}
-      {hasHistory && (
-        <Paper component={motion.div} {...cardMotion(1)} sx={cardSx}>
-          <SectionLabel>Monthly trend</SectionLabel>
-          <Stack spacing={1.5}>
-            {monthlyHistory.map((m) => {
-              const pct = Math.round((m.total / maxMonthlyTotal) * 100);
-              return (
-                <Box key={m.key}>
-                  <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 0.5 }}>
-                    <Typography
-                      sx={{
-                        fontSize: '0.82rem',
-                        fontWeight: m.isCurrent ? 700 : 400,
-                        color: m.isCurrent ? 'text.primary' : 'text.secondary',
-                      }}
-                    >
-                      {m.label}
-                    </Typography>
-                    <Typography
-                      sx={{
-                        fontFamily: '"Roboto Mono", "Courier New", monospace',
-                        fontSize: '0.82rem',
-                        fontWeight: m.isCurrent ? 700 : 400,
-                        color: m.isCurrent ? 'text.primary' : 'text.secondary',
-                      }}
-                    >
-                      {m.total > 0 ? `$${Math.round(m.total).toLocaleString()}` : '—'}
-                    </Typography>
-                  </Box>
-                  <MotionBar
-                    value={pct}
-                    color={m.isCurrent ? '#7a8fff' : theme.palette.mode === 'dark' ? '#4b5563' : '#9ca3af'}
-                    bg={m.isCurrent ? 'rgba(122,143,255,0.12)' : 'rgba(107,114,128,0.08)'}
-                  />
-                </Box>
-              );
-            })}
-          </Stack>
-        </Paper>
-      )}
-
-      {/* By category */}
-      {pieData.length > 0 && (
-        <Paper
-          component={motion.div}
-          {...cardMotion(2)}
-          sx={cardSx}
-        >
-          <SectionLabel>By category</SectionLabel>
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-            <Box sx={{ position: 'relative', flex: '0 0 160px', height: 160 }}>
-              <PieChart
-                series={[
-                  {
-                    data: pieData,
-                    innerRadius: 48,
-                    outerRadius: 72,
-                    paddingAngle: 2,
-                    cornerRadius: 4,
-                    cx: 80,
-                    cy: 80,
-                    highlightScope: { faded: 'global', highlighted: 'item' },
-                  },
-                ]}
-                width={160}
-                height={160}
-                margin={{ top: 0, right: 0, bottom: 0, left: 0 }}
-                slotProps={{ legend: { hidden: true } }}
-              />
-              <Box
-                sx={{
-                  position: 'absolute',
-                  top: '50%',
-                  left: '50%',
-                  transform: 'translate(-50%, -50%)',
-                  textAlign: 'center',
-                  pointerEvents: 'none',
-                }}
-              >
-                <Typography
-                  sx={{
-                    fontSize: '0.55rem',
-                    color: 'text.secondary',
-                    textTransform: 'uppercase',
-                    letterSpacing: '0.1em',
-                    lineHeight: 1.4,
-                  }}
-                >
-                  Total
-                </Typography>
-                <Typography sx={{ fontSize: '0.95rem', fontWeight: 700, lineHeight: 1.2, color: 'text.primary' }}>
-                  ${total >= 1000 ? `${Math.round(total / 1000)}K` : Math.round(total)}
-                </Typography>
-              </Box>
-            </Box>
-
-            <Stack spacing={1.5} sx={{ flex: 1, minWidth: 0 }}>
-              {pieData.map((d) => {
-                const pct = Math.round((d.value / total) * 100);
-                return (
-                  <Box key={d.id}>
-                    <Box
-                      sx={{
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'space-between',
-                        mb: 0.5,
-                      }}
-                    >
-                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, minWidth: 0 }}>
-                        <Box
-                          sx={{
-                            width: 9,
-                            height: 9,
-                            borderRadius: '50%',
-                            bgcolor: d.color,
-                            flexShrink: 0,
-                          }}
-                        />
-                        <Typography
-                          sx={{
-                            fontSize: '0.85rem',
-                            fontWeight: 500,
-                            color: 'text.primary',
-                            overflow: 'hidden',
-                            textOverflow: 'ellipsis',
-                            whiteSpace: 'nowrap',
-                          }}
-                        >
-                          {d.label}
-                        </Typography>
-                      </Box>
-                      <Typography sx={{ fontSize: '0.85rem', fontWeight: 700, color: 'text.primary', ml: 1, flexShrink: 0 }}>
-                        {pct}%
-                      </Typography>
-                    </Box>
-                    <MotionBar value={pct} color={d.color} bg={`${d.color}33`} />
-                  </Box>
-                );
-              })}
-            </Stack>
-          </Box>
-        </Paper>
-      )}
-
-      {/* Daily spend */}
-      {spendingDays.length > 0 && (
-        <Paper
-          component={motion.div}
-          {...cardMotion(4)}
-          sx={cardSx}
-        >
-          <SectionLabel>Daily spend</SectionLabel>
-
-          <Box sx={{ display: 'flex', gap: 3, mb: 2.5 }}>
-            <Box>
-              <Typography
-                sx={{
-                  fontFamily: '"Roboto Mono", "Courier New", monospace',
-                  fontSize: '1.35rem',
-                  fontWeight: 700,
-                  color: 'text.primary',
-                  lineHeight: 1,
-                }}
-              >
-                {spendingDays.length}
-              </Typography>
-              <Typography
-                sx={{
-                  fontSize: '0.6rem',
-                  color: 'text.secondary',
-                  textTransform: 'uppercase',
-                  letterSpacing: '0.1em',
-                  mt: 0.5,
-                }}
-              >
-                days active
-              </Typography>
-            </Box>
-            <Box>
-              <Typography
-                sx={{
-                  fontFamily: '"Roboto Mono", "Courier New", monospace',
-                  fontSize: '1.35rem',
-                  fontWeight: 700,
-                  color: 'text.primary',
-                  lineHeight: 1,
-                }}
-              >
-                ${(total / spendingDays.length).toFixed(0)}
-              </Typography>
-              <Typography
-                sx={{
-                  fontSize: '0.6rem',
-                  color: 'text.secondary',
-                  textTransform: 'uppercase',
-                  letterSpacing: '0.1em',
-                  mt: 0.5,
-                }}
-              >
-                avg / day
-              </Typography>
-            </Box>
-            <Box>
-              <Typography
-                sx={{
-                  fontFamily: '"Roboto Mono", "Courier New", monospace',
-                  fontSize: '1.35rem',
-                  fontWeight: 700,
-                  color: 'text.primary',
-                  lineHeight: 1,
-                }}
-              >
-                ${maxDaySpend.toFixed(0)}
-              </Typography>
-              <Typography
-                sx={{
-                  fontSize: '0.6rem',
-                  color: 'text.secondary',
-                  textTransform: 'uppercase',
-                  letterSpacing: '0.1em',
-                  mt: 0.5,
-                }}
-              >
-                peak day
-              </Typography>
-            </Box>
-          </Box>
-
-          <Stack spacing={1.5}>
-            {spendingDays.map((d) => {
-              const pct = Math.round((d.total / maxDaySpend) * 100);
-              return (
-                <Box key={d.day}>
-                  <Box
-                    sx={{
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'space-between',
-                      mb: 0.5,
-                    }}
-                  >
-                    <Typography
-                      sx={{
-                        fontSize: '0.85rem',
-                        fontWeight: 500,
-                        color: 'text.primary',
-                      }}
-                    >
-                      {d.day}
-                    </Typography>
-                    <Typography
-                      sx={{
-                        fontFamily: '"Roboto Mono", "Courier New", monospace',
-                        fontSize: '0.85rem',
-                        fontWeight: 700,
-                        color: 'text.primary',
-                      }}
-                    >
-                      ${d.total.toFixed(2)}
-                    </Typography>
-                  </Box>
-                  <MotionBar value={pct} color="#7a8fff" bg="rgba(122,143,255,0.12)" />
-                </Box>
-              );
-            })}
-          </Stack>
-        </Paper>
-      )}
-
-      {/* Month checkpoints — day 15 & day 30 */}
-      {total > 0 && (
-        <Paper component={motion.div} {...cardMotion(3)} sx={cardSx}>
-          <SectionLabel>Month checkpoints</SectionLabel>
-
-          <SubLabel>By day 15</SubLabel>
-          <Stack spacing={1.5} sx={{ mb: 3 }}>
-            {checkpointData.map((c) => {
-              const pct = Math.round((c.by15 / maxBy15) * 100);
-              return (
-                <Box key={c.key + '-15'}>
-                  <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 0.5 }}>
-                    <Typography sx={{ fontSize: '0.82rem', fontWeight: c.isCurrent ? 700 : 400, color: c.isCurrent ? 'text.primary' : 'text.secondary' }}>
-                      {c.label}
-                    </Typography>
-                    <Typography sx={{ fontFamily: '"Roboto Mono", "Courier New", monospace', fontSize: '0.82rem', fontWeight: c.isCurrent ? 700 : 400, color: c.isCurrent ? 'text.primary' : 'text.secondary' }}>
-                      {c.by15 > 0 ? `$${Math.round(c.by15).toLocaleString()}` : '—'}
-                    </Typography>
-                  </Box>
-                  <MotionBar
-                    value={pct}
-                    color={c.isCurrent ? '#a78bfa' : theme.palette.mode === 'dark' ? '#4b5563' : '#9ca3af'}
-                    bg={c.isCurrent ? 'rgba(167,139,250,0.12)' : 'rgba(107,114,128,0.08)'}
-                  />
-                </Box>
-              );
-            })}
-          </Stack>
-
-          <SubLabel>
-            By day 30{todayDay < 30 ? ' · in progress' : ''}
-          </SubLabel>
-          <Stack spacing={1.5}>
-            {checkpointData.map((c) => {
-              const pct = Math.round((c.by30 / maxBy30) * 100);
-              return (
-                <Box key={c.key + '-30'}>
-                  <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 0.5 }}>
-                    <Typography sx={{ fontSize: '0.82rem', fontWeight: c.isCurrent ? 700 : 400, color: c.isCurrent ? 'text.primary' : 'text.secondary' }}>
-                      {c.label}
-                    </Typography>
-                    <Typography sx={{ fontFamily: '"Roboto Mono", "Courier New", monospace', fontSize: '0.82rem', fontWeight: c.isCurrent ? 700 : 400, color: c.isCurrent ? 'text.primary' : 'text.secondary' }}>
-                      {c.by30 > 0 ? `$${Math.round(c.by30).toLocaleString()}` : '—'}
-                    </Typography>
-                  </Box>
-                  <MotionBar
-                    value={pct}
-                    color={c.isCurrent ? '#f59e0b' : theme.palette.mode === 'dark' ? '#4b5563' : '#9ca3af'}
-                    bg={c.isCurrent ? 'rgba(245,158,11,0.12)' : 'rgba(107,114,128,0.08)'}
-                  />
-                </Box>
-              );
-            })}
-          </Stack>
-        </Paper>
-      )}
-
-      {/* Weekday patterns */}
-      {hasWeekdayData && (
-        <Paper component={motion.div} {...cardMotion(5)} sx={cardSx}>
-          <SectionLabel>Weekday patterns</SectionLabel>
-          <Stack spacing={1.5}>
-            {weekdayData.map((d) => {
-              const pct = Math.round((d.total / maxWeekday) * 100);
-              return (
-                <Box key={d.label}>
-                  <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 0.5 }}>
-                    <Typography
-                      sx={{
-                        fontSize: '0.82rem',
-                        fontWeight: 500,
-                        color: d.total > 0 ? 'text.primary' : 'text.disabled',
-                      }}
-                    >
-                      {d.label}
-                    </Typography>
-                    <Typography
-                      sx={{
-                        fontFamily: '"Roboto Mono", "Courier New", monospace',
-                        fontSize: '0.82rem',
-                        color: d.total > 0 ? 'text.primary' : 'text.disabled',
-                      }}
-                    >
-                      {d.total > 0 ? `$${Math.round(d.total).toLocaleString()}` : '—'}
-                    </Typography>
-                  </Box>
-                  <MotionBar value={pct} color="#34d399" bg="rgba(52,211,153,0.1)" />
-                </Box>
-              );
-            })}
-          </Stack>
-        </Paper>
-      )}
-
-      {/* Budgets */}
-      {budgetProgress.length > 0 && (
-        <Paper component={motion.div} {...cardMotion(6)} sx={{ p: 2.5 }}>
-          <SectionLabel>Budgets</SectionLabel>
-          <Stack spacing={1.5}>
-            {budgetProgress.map((b) => (
-              <Box key={b.category}>
-                <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 0.5 }}>
-                  <Typography variant="body2">{b.label}</Typography>
-                  <Typography
-                    variant="body2"
-                    sx={{ color: b.spent > b.budget ? 'error.main' : 'text.secondary' }}
-                  >
-                    ${b.spent.toFixed(2)} / ${b.budget.toFixed(2)}
-                  </Typography>
-                </Box>
-                <MotionBar
-                  value={Math.min(100, (b.spent / b.budget) * 100)}
-                  color={b.spent > b.budget ? '#f44336' : b.color}
-                  bg={`${b.color}22`}
-                  height={4}
-                />
-              </Box>
-            ))}
-          </Stack>
-        </Paper>
-      )}
-
-      {thisMonth.length === 0 && (
+  if (d.thisMonth.length === 0) {
+    return (
+      <Stack spacing={2.5}>
+        {hero}
         <Typography color="text.secondary" sx={{ textAlign: 'center', mt: 4 }}>
           No expenses this month.
         </Typography>
-      )}
+      </Stack>
+    );
+  }
+
+  if (!isDesktop) {
+    return (
+      <Stack spacing={2.5}>
+        {hero}
+        {kpiStrip}
+        {d.pieData.length > 0 && (
+          <ByCategoryCard pieData={d.pieData} total={d.total} variant="mobile" motionIndex={2} />
+        )}
+        {d.hasHistory && (
+          <MonthlyTrendCard
+            monthlyHistory={d.monthlyHistory}
+            maxMonthlyTotal={d.maxMonthlyTotal}
+            motionIndex={3}
+          />
+        )}
+        {d.budgetProgress.length > 0 && (
+          <BudgetsCard budgetProgress={d.budgetProgress} variant="mobile" motionIndex={4} />
+        )}
+      </Stack>
+    );
+  }
+
+  const gridItemSx = { display: 'flex', '& > *': { width: '100%', height: '100%' } };
+
+  return (
+    <Stack spacing={2}>
+      {hero}
+      <Grid container spacing={2} alignItems="stretch">
+        {d.pieData.length > 0 && (
+          <Grid size={{ xs: 12, md: 5 }} sx={gridItemSx}>
+            <ByCategoryCard
+              pieData={d.pieData}
+              total={d.total}
+              variant="desktop"
+              motionIndex={1}
+            />
+          </Grid>
+        )}
+        <Grid size={{ xs: 12, md: 7 }}>
+          <Stack spacing={2}>
+            <CumulativeSpendCard
+              cumulativeData={d.cumulativeData}
+              now={d.now}
+              lastMonthDate={d.lastMonthDate}
+              motionIndex={2}
+            />
+            {d.hasWeekdayData && (
+              <WeekdayPatternsCard
+                weekdayData={d.weekdayData}
+                maxWeekday={d.maxWeekday}
+                variant="horizontal"
+                motionIndex={3}
+              />
+            )}
+          </Stack>
+        </Grid>
+
+        {d.topExpenses.length > 0 && (
+          <Grid size={{ xs: 12, sm: 6, md: 4 }} sx={gridItemSx}>
+            <TopExpensesCard topExpenses={d.topExpenses} motionIndex={4} />
+          </Grid>
+        )}
+        {d.hasHistory && (
+          <Grid size={{ xs: 12, sm: 6, md: 4 }} sx={gridItemSx}>
+            <MonthlyTrendCard
+              monthlyHistory={d.monthlyHistory}
+              maxMonthlyTotal={d.maxMonthlyTotal}
+              motionIndex={5}
+            />
+          </Grid>
+        )}
+        {d.total > 0 && (
+          <Grid size={{ xs: 12, sm: 6, md: 4 }} sx={gridItemSx}>
+            <MonthCheckpointsCard
+              checkpointData={d.checkpointData}
+              maxBy15={d.maxBy15}
+              maxBy30={d.maxBy30}
+              todayDay={d.todayDay}
+              motionIndex={6}
+            />
+          </Grid>
+        )}
+        {d.hasLastMonth && d.categoryDeltas.length > 0 && (
+          <Grid size={{ xs: 12, md: 4 }} sx={gridItemSx}>
+            <CategoryDeltasCard
+              categoryDeltas={d.categoryDeltas}
+              lastMonthDate={d.lastMonthDate}
+              motionIndex={7}
+            />
+          </Grid>
+        )}
+        {d.spendingDays.length > 0 && (
+          <Grid size={{ xs: 12, md: 3 }} sx={gridItemSx}>
+            <DailySpendCard
+              spendingDays={d.spendingDays}
+              maxDaySpend={d.maxDaySpend}
+              motionIndex={8}
+            />
+          </Grid>
+        )}
+        {d.hasLastMonth && (
+          <Grid size={{ xs: 12, md: 5 }} sx={gridItemSx}>
+            <SpendingPaceCard
+              cumulativeData={d.cumulativeData}
+              todayDay={d.todayDay}
+              now={d.now}
+              lastMonthDate={d.lastMonthDate}
+              motionIndex={9}
+            />
+          </Grid>
+        )}
+        {d.budgetProgress.length > 0 && (
+          <Grid size={12} sx={gridItemSx}>
+            <BudgetsCard
+              budgetProgress={d.budgetProgress}
+              variant="desktop"
+              motionIndex={10}
+            />
+          </Grid>
+        )}
+      </Grid>
     </Stack>
   );
 }

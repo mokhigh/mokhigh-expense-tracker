@@ -217,7 +217,12 @@ export default function Expenses() {
     return [...map.entries()].sort((a, b) => b[0].localeCompare(a[0]));
   }, [filtered]);
 
-  return (
+  const monthTotal = useMemo(
+    () => filtered.reduce((sum, e) => sum + Number(e.amount), 0),
+    [filtered],
+  );
+
+  const filters = (
     <Stack spacing={2}>
       <MonthCarousel value={monthKey} onChange={setMonthKey} />
       <TextField
@@ -232,21 +237,56 @@ export default function Expenses() {
           ),
         }}
       />
-
-      {grouped.length === 0 ? (
-        <Typography
-          component={motion.div}
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          color="text.secondary"
-          sx={{ textAlign: 'center', mt: 4 }}
+      {filtered.length > 0 && (
+        <Box
+          sx={{
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'baseline',
+            px: 0.5,
+          }}
         >
-          {search
-            ? 'No results.'
-            : `No expenses in ${format(new Date(`${monthKey}-01`), 'MMMM yyyy')}.`}
-        </Typography>
-      ) : (
-        grouped.map(([day, items], gi) => (
+          <Typography
+            sx={{
+              fontSize: '0.62rem',
+              fontWeight: 700,
+              letterSpacing: '0.12em',
+              textTransform: 'uppercase',
+              color: 'text.secondary',
+            }}
+          >
+            {filtered.length} {filtered.length === 1 ? 'expense' : 'expenses'}
+          </Typography>
+          <Typography
+            sx={{
+              fontFamily: '"Roboto Mono", "Courier New", monospace',
+              fontSize: '0.95rem',
+              fontWeight: 700,
+            }}
+          >
+            ${monthTotal.toFixed(2)}
+          </Typography>
+        </Box>
+      )}
+    </Stack>
+  );
+
+  const list =
+    grouped.length === 0 ? (
+      <Typography
+        component={motion.div}
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        color="text.secondary"
+        sx={{ textAlign: 'center', mt: 4 }}
+      >
+        {search
+          ? 'No results.'
+          : `No expenses in ${format(new Date(`${monthKey}-01`), 'MMMM yyyy')}.`}
+      </Typography>
+    ) : (
+      <Stack spacing={2}>
+        {grouped.map(([day, items], gi) => (
           <Paper key={day} component={motion.div} {...groupMotion(gi)} sx={cardSx}>
             <Box
               sx={{
@@ -291,8 +331,31 @@ export default function Expenses() {
               </AnimatePresence>
             </List>
           </Paper>
-        ))
-      )}
+        ))}
+      </Stack>
+    );
+
+  return (
+    <Box
+      sx={{
+        display: { xs: 'flex', md: 'grid' },
+        flexDirection: { xs: 'column', md: 'unset' },
+        gridTemplateColumns: { md: '300px minmax(0, 1fr)' },
+        gap: { xs: 2, md: 4 },
+        alignItems: 'start',
+      }}
+    >
+      <Box
+        sx={{
+          position: { md: 'sticky' },
+          top: { md: 24 },
+          alignSelf: 'start',
+          width: '100%',
+        }}
+      >
+        {filters}
+      </Box>
+      <Box sx={{ minWidth: 0 }}>{list}</Box>
 
       {editExpense && (
         <EditExpenseDialog
@@ -302,6 +365,6 @@ export default function Expenses() {
           onSave={updateExpense}
         />
       )}
-    </Stack>
+    </Box>
   );
 }

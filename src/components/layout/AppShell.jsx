@@ -97,10 +97,12 @@ export default function AppShell() {
             </IconButton>
           </Box>
         </Drawer>
-        <Box component="main" sx={{ flexGrow: 1, p: 3 }}>
-          <PageMotion key={location.pathname}>
-            <Outlet />
-          </PageMotion>
+        <Box component="main" sx={{ flexGrow: 1, minWidth: 0, p: 3 }}>
+          <Box sx={{ maxWidth: 1400, mx: 'auto' }}>
+            <PageMotion key={location.pathname}>
+              <Outlet />
+            </PageMotion>
+          </Box>
         </Box>
       </Box>
     );
