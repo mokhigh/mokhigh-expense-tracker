@@ -193,11 +193,24 @@ export default function Expenses() {
   const updateExpense = useExpenses((s) => s.updateExpense);
   const [monthKey, setMonthKey] = useState(currentMonthKey);
   const [search, setSearch] = useState('');
+  const [selectedCats, setSelectedCats] = useState(() => new Set());
   const [editExpense, setEditExpense] = useState(null);
+  const categories = useCategories((s) => s.categories);
+
+  const toggleCat = (id) =>
+    setSelectedCats((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
 
   const filtered = useMemo(() => {
     const q = search.trim().toLowerCase();
-    const base = expenses.filter((e) => tzDate(e.spent_at).startsWith(monthKey));
+    let base = expenses.filter((e) => tzDate(e.spent_at).startsWith(monthKey));
+    if (selectedCats.size > 0) {
+      base = base.filter((e) => selectedCats.has(e.category));
+    }
     if (!q) return base;
     return base.filter(
       (e) =>
@@ -205,7 +218,7 @@ export default function Expenses() {
         e.category?.toLowerCase().includes(q) ||
         String(e.amount).includes(q),
     );
-  }, [expenses, search, monthKey]);
+  }, [expenses, search, monthKey, selectedCats]);
 
   const grouped = useMemo(() => {
     const map = new Map();
@@ -237,6 +250,61 @@ export default function Expenses() {
           ),
         }}
       />
+      <Box sx={{ display: { xs: 'none', md: 'block' } }}>
+        <Typography
+          sx={{
+            fontSize: '0.62rem',
+            fontWeight: 700,
+            letterSpacing: '0.12em',
+            textTransform: 'uppercase',
+            color: 'text.secondary',
+            mb: 1,
+            px: 0.5,
+          }}
+        >
+          Categories
+        </Typography>
+        <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.75 }}>
+          {categories.map((c) => {
+            const active = selectedCats.has(c.id);
+            return (
+              <Chip
+                key={c.id}
+                label={c.label}
+                size="small"
+                onClick={() => toggleCat(c.id)}
+                sx={{
+                  bgcolor: active ? c.color : `${c.color}20`,
+                  color: active ? '#fff' : c.color,
+                  fontWeight: 600,
+                  fontSize: '0.7rem',
+                  height: 24,
+                  cursor: 'pointer',
+                  border: `1px solid ${active ? c.color : 'transparent'}`,
+                  '&:hover': {
+                    bgcolor: active ? c.color : `${c.color}33`,
+                  },
+                }}
+              />
+            );
+          })}
+        </Box>
+        {selectedCats.size > 0 && (
+          <Typography
+            onClick={() => setSelectedCats(new Set())}
+            sx={{
+              mt: 1,
+              px: 0.5,
+              fontSize: '0.7rem',
+              color: 'text.secondary',
+              cursor: 'pointer',
+              '&:hover': { color: 'text.primary' },
+            }}
+          >
+            Clear ({selectedCats.size})
+          </Typography>
+        )}
+      </Box>
       {filtered.length > 0 && (
         <Box
           sx={{
