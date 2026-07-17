@@ -113,7 +113,7 @@ function MonthCarousel({ value, onChange }) {
           letterSpacing: '0.02em',
         }}
       >
-        {format(new Date(`${value}-01`), 'MMMM yyyy')}
+        {format(new Date(`${value}-01T12:00:00`), 'MMMM yyyy')}
       </Typography>
       <IconButton size="small" onClick={() => shift(1)} disabled={isNow}>
         <ChevronRightIcon fontSize="small" />
@@ -350,7 +350,7 @@ export default function Expenses() {
       >
         {search
           ? 'No results.'
-          : `No expenses in ${format(new Date(`${monthKey}-01`), 'MMMM yyyy')}.`}
+          : `No expenses in ${format(new Date(`${monthKey}-01T12:00:00`), 'MMMM yyyy')}.`}
       </Typography>
     ) : (
       <Stack spacing={2}>

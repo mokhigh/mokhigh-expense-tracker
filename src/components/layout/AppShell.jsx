@@ -20,6 +20,7 @@ import {
 import AddIcon from '@mui/icons-material/AddCircleOutline';
 import ListIcon from '@mui/icons-material/FormatListBulleted';
 import DashboardIcon from '@mui/icons-material/QueryStats';
+import ReportsIcon from '@mui/icons-material/AssessmentOutlined';
 import SettingsIcon from '@mui/icons-material/Settings';
 import DarkModeIcon from '@mui/icons-material/DarkMode';
 import LightModeIcon from '@mui/icons-material/LightMode';
@@ -30,8 +31,11 @@ const NAV = [
   { to: '/add', label: 'Add', Icon: AddIcon },
   { to: '/expenses', label: 'Expenses', Icon: ListIcon },
   { to: '/dashboard', label: 'Dashboard', Icon: DashboardIcon },
+  { to: '/reports', label: 'Reports', Icon: ReportsIcon, desktopOnly: true },
   { to: '/settings', label: 'Settings', Icon: SettingsIcon },
 ];
+
+const MOBILE_NAV = NAV.filter((n) => !n.desktopOnly);
 
 const SIDEBAR_WIDTH = 240;
 
@@ -186,7 +190,7 @@ export default function AppShell() {
             px: 0.5,
           }}
         >
-          {NAV.map(({ to, label, Icon }) => {
+          {MOBILE_NAV.map(({ to, label, Icon }) => {
             const active = currentValue === to;
             return (
               <ButtonBase

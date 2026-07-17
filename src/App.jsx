@@ -6,6 +6,7 @@ import AddExpense from './routes/AddExpense.jsx';
 import Auth from './routes/Auth.jsx';
 import Dashboard from './routes/Dashboard.jsx';
 import Expenses from './routes/Expenses.jsx';
+import Reports from './routes/Reports.jsx';
 import Settings from './routes/Settings.jsx';
 import { useAuth } from './store/useAuth.js';
 import { isSupabaseConfigured } from './lib/supabase.js';
@@ -35,6 +36,7 @@ export default function App() {
           <Route path="/add" element={<AddExpense />} />
           <Route path="/expenses" element={<Expenses />} />
           <Route path="/dashboard" element={<Dashboard />} />
+          <Route path="/reports" element={<Reports />} />
           <Route path="/settings" element={<Settings />} />
         </Route>
       </Route>
